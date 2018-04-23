@@ -58,13 +58,33 @@ ExEngine allows easy REST controllers creation, you just have to extend a parent
     }
 ```
 
-## Writing a JSON api
+## Writing a JSON api
 
 ExEngine converts anything except `strings` functions results to JSON, encapsulating in an standard response.
 
-Example response:
+Example successful response:
 ```json
-    
+{
+    "took":0,
+    "code":200,
+    "data":{
+        "response": "from",
+        "the": "function"
+    },
+    "error":false
+    }
+```
+
+To get the previous response you should write the following function:
+
+```php
+    // ...
+    function test() {
+        return [
+            "response" => "from",
+            "the" => "function"
+        ]
+    }
 ```
 
 ## License
