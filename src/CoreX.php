@@ -341,29 +341,18 @@ namespace ExEngine {
         }
 
         /**
-         *
-         * @param BaseConfig|null $config
-         */
-        private function bootup(BaseConfig &$config = null)
-        {
-            if ($config != null) {
-                if ($config instanceof BaseConfig) {
-                    $this->config = &$config;
-                    return;
-                }
-            }
-            $this->config = new DefaultConfig();
-        }
-
-        /**
          * ExEngine Core X constructor.
          * @param BaseConfig|null $config
          */
         function __construct(BaseConfig $config = null)
         {
             CoreX::$instance = $this;
-            $this->bootup($config);
-            if ($config->isShowHeaderBanner())
+            if ($config != null && $config instanceof BaseConfig) {
+                $this->config = &$config;
+                return;
+            }
+            $this->config = new DefaultConfig();
+            if ($this->config->isShowHeaderBanner())
                 header("Y-Powered-By: ExEngine");
             try {
                 print $this->processArguments();
