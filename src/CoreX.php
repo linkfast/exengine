@@ -349,9 +349,9 @@ namespace ExEngine {
             CoreX::$instance = $this;
             if ($config != null && $config instanceof BaseConfig) {
                 $this->config = &$config;
-                return;
+            } else {
+                $this->config = new DefaultConfig();
             }
-            $this->config = new DefaultConfig();
             if ($this->config->isShowHeaderBanner())
                 header("Y-Powered-By: ExEngine");
             try {
