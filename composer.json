@@ -13,6 +13,11 @@
             "role": "Developer/CTO"
         }
     ],
+    "support": {
+        "issues": "https://gitlab.com/linkfast-oss/exengine/issues",
+        "source": "https://gitlab.com/linkfast-oss/exengine",
+        "docs": "https://gitlab.com/linkfast-oss/exengine/wikis/home"
+    },
     "require": {
         "php": ">=7.1.0"
     },
