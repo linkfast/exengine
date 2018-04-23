@@ -1,0 +1,24 @@
+{
+    "name": "linkfast-oss/exengine",
+    "type": "library",
+    "description": "Microframework for PHP 7.1+",
+    "keywords": ["microframework","api","autorouting"],
+    "homepage": "https://gitlab.com/linkfast-oss/exengine",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Giancarlo A. Chiappe Aguilar",
+            "email": "gchiappe@linkfast.io",
+            "homepage": "http://www.linkfastsa.com/",
+            "role": "Developer/CTO"
+        }
+    ],
+    "require": {
+        "php": ">=7.1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ExEngine\\": "src/"
+        }
+    }
+}
