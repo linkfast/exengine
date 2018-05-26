@@ -227,6 +227,14 @@ namespace ExEngine {
         protected $error = false;
         protected $errorDetails = null;
 
+        /**
+         * StandardResponse constructor.
+         * @param int $took
+         * @param int $code
+         * @param array|NULL $data
+         * @param bool $error
+         * @param ErrorDetail|NULL $errorDetails
+         */
         function __construct(
             $took,
             $code,
