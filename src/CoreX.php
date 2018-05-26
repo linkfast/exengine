@@ -1,8 +1,8 @@
 <?php
 /* PHP Version Check */
 namespace {
-    if (version_compare(PHP_VERSION, '7.1.0', '<')) {
-        print '<h1>ExEngine</h1><p>ExEngine requires PHP 7.1 or higher, please update your installation.</p>';
+    if (version_compare(PHP_VERSION, '5.6.0', '<')) {
+        print '<h1>ExEngine</h1><p>ExEngine requires PHP 5.6 or higher, please update your installation.</p>';
         exit();
     }
 }
@@ -14,8 +14,12 @@ namespace ExEngine {
     use Throwable;
 
     class Rest {
+        /**
+         * @param array $argument_array
+         * @return mixed
+         * @throws ResponseException
+         */
         final function executeRest(array $argument_array) {
-            //$args = func_get_args();
             if (method_exists($this,strtolower($_SERVER['REQUEST_METHOD']))) {
                 return call_user_func_array([$this, strtolower($_SERVER['REQUEST_METHOD'])], $argument_array);
             } else {
@@ -36,16 +40,16 @@ namespace ExEngine {
     abstract class DataClass
     {
         /**
-         * This variable contains the DataClass configuration, should be set it in the child constructor.
+         * Contains the DataClass configuration, should be set it in the child constructor.
          * @var null|\ExEngine\DataClassLocalConfig
          */
         protected $dcConfiguration = null;
 
         /**
-         * This function converts all properties into a serializable array.
+         * Converts all properties into a serializable array.
          * @return array
          */
-        final public function expose(): array
+        final public function expose()
         {
             if ((\ee()->getConfig()->isSuppressNulls() && $this->dcConfiguration == null) ||
                 ($this->dcConfiguration != null && $this->dcConfiguration->isSupressNulls())) {
@@ -68,11 +72,11 @@ namespace ExEngine {
 
     /**
      * Class ResponseException
-     * This class is a simple extension to PHP's Exception class.
+     * Simple extension to PHP's Exception class.
      * @package ExEngine
      */
     class ResponseException extends \Exception {
-        public function __construct(string $message = "", int $code = 0, Throwable $previous = null)
+        public function __construct($message = "",$code = 0, Throwable $previous = null)
         {
             parent::__construct($message, $code, $previous);
         }
@@ -87,7 +91,7 @@ namespace ExEngine {
          * @param bool|null $suppressNulls Activates `DataClass` automatic null suppression.
          */
         public final function __construct(
-            bool $suppressNulls = null
+            $suppressNulls = null
         )
         {
             if ($suppressNulls === null) {
@@ -111,49 +115,89 @@ namespace ExEngine {
         protected $suppressNulls = true;
         protected $showStackTrace = true;
         protected $showHeaderBanner = true;
+        protected $dbConnectionAuto = false;
 
         /* getters */
+
+        /**
+         * True if JSON output null suppression is enabled.
+         * @return bool
+         */
         public function isSuppressNulls()
         {
             return $this->suppressNulls;
         }
 
+        /**
+         * Returns the controller's folder.
+         * @return string
+         */
         public function getControllersLocation()
         {
             return $this->controllersLocation;
         }
 
+        /**
+         * Returns true if pretty JSON printing is enabled.
+         * @return bool
+         */
         public function isUsePrettyPrint()
         {
             return $this->usePrettyPrint;
         }
 
+        /**
+         * @return string
+         */
         public function getShowVersionInfo()
         {
             return $this->showVersionInfo;
         }
 
-        public function getSessionConfig(): BaseSessionConfig
+        /**
+         * @return mixed
+         */
+        public function getSessionConfig()
         {
             return $this->sessionConfig;
         }
 
+        /**
+         * @return bool
+         */
         public function isShowStackTrace() {
             return $this->showStackTrace;
         }
 
+        /**
+         * @return bool
+         */
         public function isShowHeaderBanner() {
             return $this->showHeaderBanner;
         }
+
+        /**
+         * @return bool
+         */
+        public function isDbConnectionAuto()
+        {
+            return $this->dbConnectionAuto;
+        }
+
+
 
         /* setters */
 
         /* default overridables */
 
         /**
-         * Default overridable method for defining a database connection.
+         * Default overridable method for defining a database connection. Do not call parent::dbInit();
          */
-        public function dbInit() {}
+        public function dbInit() {
+            if (class_exists("\\R")) {
+                \R::setup();
+            }
+        }
     }
 
     class DefaultConfig extends BaseConfig
@@ -167,7 +211,7 @@ namespace ExEngine {
 
         function __construct(
             array $stackTrace = null,
-            string $message
+            $message
         )
         {
             $this->stackTrace = $stackTrace;
@@ -184,10 +228,10 @@ namespace ExEngine {
         protected $errorDetails = null;
 
         function __construct(
-            int $took,
-            int $code,
+            $took,
+            $code,
             array $data = NULL,
-            bool $error = false,
+            $error = false,
             ErrorDetail $errorDetails = NULL
         )
         {
@@ -205,14 +249,20 @@ namespace ExEngine {
     {
         private static $instance = null;
 
-        public static function getInstance(): CoreX
+        /**
+         * @return CoreX
+         */
+        public static function getInstance()
         {
             return self::$instance;
         }
 
         private $config = null;
 
-        public function getConfig(): BaseConfig
+        /**
+         * @return BaseConfig
+         */
+        public function getConfig()
         {
             return $this->config;
         }
@@ -225,11 +275,19 @@ namespace ExEngine {
             return null;
         }
 
-        private function getController(string $ControllerFilePath) {
+        /**
+         * @param string $ControllerFilePath
+         * @return string
+         */
+        private function getController($ControllerFilePath) {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFilePath . '.php';
         }
 
-        private function getControllerFolder(string $ControllerFolder) {
+        /**
+         * @param string $ControllerFolder
+         * @return string
+         */
+        private function getControllerFolder($ControllerFolder) {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFolder;
         }
 
@@ -238,7 +296,7 @@ namespace ExEngine {
          * @return string
          * @throws ResponseException
          */
-        private function processArguments(): string
+        private function processArguments()
         {
 
             $start = time();
@@ -304,6 +362,8 @@ namespace ExEngine {
                 }
 
                 if ($classObj instanceof Rest) {
+                    // connect to database if autoconnection is enabled
+                    if ($this->getConfig()->is)
                     // if controller is Rest, execute directly depending on the method.
                     try {
                         $data = $classObj->executeRest(array_slice($access,1));
@@ -372,7 +432,7 @@ namespace {
      *
      * @return \ExEngine\CoreX
      */
-    function ee(): \ExEngine\CoreX
+    function ee()
     {
         return \ExEngine\CoreX::getInstance();
     }
