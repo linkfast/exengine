@@ -72,7 +72,7 @@ Example successful response:
         "the": "function"
     },
     "error":false
-    }
+}
 ```
 
 To get the previous response you should write the following function:
