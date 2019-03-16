@@ -2,7 +2,8 @@
 
 ## Quick start
 
-1. Install using `composer` or [download a release](https://gitlab.com/linkfast-oss/exengine/tags).
+1. Install using `composer` or 
+[download a release](https://gitlab.com/linkfast-oss/exengine/releases).
 
     ```
     composer install linkfast-oss/exengine
