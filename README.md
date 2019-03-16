@@ -102,7 +102,7 @@ Check out some [examples here](https://gitlab.com/linkfast-oss/exengine/tree/mas
 
 ## Issues
 
-Please leave
+Please leave an issue to our GitLab.com project using this [link](https://gitlab.com/linkfast-oss/exengine/issues/new).
 
 ## License
 
@@ -130,4 +130,3 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 OR OTHER DEALINGS IN THE SOFTWARE.
 ```
- an issue to our GitLab.com project using this [link](https://gitlab.com/linkfast-oss/exengine/issues/new).

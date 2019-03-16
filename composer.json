@@ -23,7 +23,7 @@
     },
     "autoload": {
         "files":  [
-            "src/CoreX.php"
+            "dist/CoreX.php"
         ]
     }
 }
