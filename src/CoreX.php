@@ -5,8 +5,6 @@ namespace {
         print '<h1>ExEngine</h1><p>ExEngine requires PHP 5.6 or higher, please update your installation.</p>';
         exit();
     }
-
-    include_once 'Classes/BaseConfig/BaseConfig.php';
 }
 /**
  * ExEngine namespace.
