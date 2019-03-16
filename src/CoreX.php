@@ -20,10 +20,14 @@ namespace ExEngine {
          * @throws ResponseException
          */
         final function executeRest(array $argument_array) {
-            if (method_exists($this,strtolower($_SERVER['REQUEST_METHOD']))) {
-                return call_user_func_array([$this, strtolower($_SERVER['REQUEST_METHOD'])], $argument_array);
+            $request_method = 'get';
+            if (isset($_SERVER['REQUEST_METHOD'])) {
+                $request_method = strtolower($_SERVER['REQUEST_METHOD']);
+            }
+            if (method_exists($this, $request_method)) {
+                return call_user_func_array([$this, $request_method], $argument_array);
             } else {
-                throw new ResponseException("REST Method (".strtolower($_SERVER['REQUEST_METHOD']).") is not defined.", 404);
+                throw new ResponseException("REST Method (".$request_method.") is not defined.", 404);
             }
         }
     }
@@ -369,9 +373,11 @@ namespace ExEngine {
                     throw new ResponseException("Not found.", 404);
                 }
 
-                if ($classObj instanceof Rest) {
+                if (isset($classObj) && $classObj instanceof Rest) {
                     // connect to database if autoconnection is enabled
-                    if ($this->getConfig()->is)
+                    if ($this->getConfig()->isDbConnectionAuto()) {
+                        $this->getConfig()->dbInit();
+                    }
                     // if controller is Rest, execute directly depending on the method.
                     try {
                         $data = $classObj->executeRest(array_slice($access,1));
@@ -380,7 +386,7 @@ namespace ExEngine {
                     }
                 } else {
                     // if not, check if method is defined
-                    if (method_exists($classObj, $method)) {
+                    if (isset($classObj) && method_exists($classObj, $method)) {
                         try {
                             $data = call_user_func_array([$classObj, $method], $arguments);
                         } catch (\Throwable $methodException) {
@@ -388,20 +394,22 @@ namespace ExEngine {
                         }
                     } else {
                         // if method does not exist, return not found
-                        throw new ResponseException("Not found.", 500);
+                        throw new ResponseException("Not found.", 404);
                     }
                 }
 
-                if ($data instanceof DataClass) {
+                if (isset($data) && $data instanceof DataClass) {
                     $data = $data->expose();
                 }
 
                 $end = time();
 
-                if (is_array($data)) {
+                if (isset($data) && is_array($data)) {
+                    header('Content-type: application/json');
                     return json_encode((new StandardResponse($end - $start, $httpCode, $data))->expose());
                 } else {
-                    return $data;
+                    if (isset($data))
+                        return $data;
                 }
             } else {
                 throw new ResponseException("Not found.", 404);
@@ -421,13 +429,14 @@ namespace ExEngine {
                 $this->config = new DefaultConfig();
             }
             if ($this->config->isShowHeaderBanner())
-                header("Y-Powered-By: ExEngine");
+                header("X-Powered-By: ExEngine");
             try {
                 print $this->processArguments();
             } catch (\Throwable $exception) {
                 $trace = $this->getConfig()->isShowStackTrace() ? $exception->getTrace() : null;
                 $resp = new StandardResponse(0, $exception->getCode(), null, true, new ErrorDetail($trace, $exception->getMessage()));
                 http_response_code($exception->getCode());
+                header('Content-type: application/json');
                 print json_encode($resp->expose(), $this->usePrettyPrint());
             }
         }
