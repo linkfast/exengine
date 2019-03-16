@@ -187,8 +187,12 @@ namespace ExEngine {
          */
         public function dbInit()
         {
+            // Classic version
             if (class_exists("\\R")) {
                 \R::setup();
+            // Composer version uses PSR-4
+            } else if (class_exists("\\RedBeanPHP\\R")) {
+                \RedBeanPHP\R::setup();
             }
         }
     }
