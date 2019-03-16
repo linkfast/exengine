@@ -2,7 +2,7 @@
 
 ## Quick start
 
-1. Install using `composer` o download `CoreX.php` file.
+1. Install using `composer` or [download a release](https://gitlab.com/linkfast-oss/exengine/tags).
 
     ```
     composer install linkfast-oss/exengine
@@ -58,6 +58,14 @@ ExEngine allows easy REST controllers creation, you just have to extend a parent
     }
 ```
 
+Test your Rest controller using standard HTTP methods: 
+
+GET `http://myserverhost/index.php/RestExample/1`
+
+POST `http://myserverhost/index.php/RestExample/`
+
+OPTIONS `http://myserverhost/index.php/RestExample/`
+
 ## Writing a JSON api
 
 ExEngine converts anything except `strings` functions results to JSON, encapsulating in an standard response.
@@ -87,12 +95,22 @@ To get the previous response you should write the following function:
     }
 ```
 
+## Documentation
+
+Check out some [examples here](https://gitlab.com/linkfast-oss/exengine/tree/master/examples) and
+ a detailed documentation in our [wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
+
+## Issues
+
+Please leave
+
 ## License
 
 ```
 The MIT License (MIT)
 
-Copyright (c) 2018 LinkFast S.A.
+Copyright (c) 2018, 2019 LINKFAST S.A. (http://linkfast.io)
+Copyright (c) 2018, 2019 Giancarlo A. Chiappe Aguilar (gchiappe@linkfast.io)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -112,3 +130,4 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 OR OTHER DEALINGS IN THE SOFTWARE.
 ```
+ an issue to our GitLab.com project using this [link](https://gitlab.com/linkfast-oss/exengine/issues/new).

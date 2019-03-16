@@ -5,6 +5,8 @@ namespace {
         print '<h1>ExEngine</h1><p>ExEngine requires PHP 5.6 or higher, please update your installation.</p>';
         exit();
     }
+
+    include_once 'Classes/BaseConfig/BaseConfig.php';
 }
 /**
  * ExEngine namespace.
@@ -120,9 +122,7 @@ namespace ExEngine {
         protected $showStackTrace = true;
         protected $showHeaderBanner = true;
         protected $dbConnectionAuto = false;
-
         /* getters */
-
         /**
          * True if JSON output null suppression is enabled.
          * @return bool
@@ -131,7 +131,6 @@ namespace ExEngine {
         {
             return $this->suppressNulls;
         }
-
         /**
          * Returns the controller's folder.
          * @return string
@@ -140,7 +139,6 @@ namespace ExEngine {
         {
             return $this->controllersLocation;
         }
-
         /**
          * Returns true if pretty JSON printing is enabled.
          * @return bool
@@ -149,7 +147,6 @@ namespace ExEngine {
         {
             return $this->usePrettyPrint;
         }
-
         /**
          * @return string
          */
@@ -157,7 +154,6 @@ namespace ExEngine {
         {
             return $this->showVersionInfo;
         }
-
         /**
          * @return mixed
          */
@@ -165,21 +161,20 @@ namespace ExEngine {
         {
             return $this->sessionConfig;
         }
-
         /**
          * @return bool
          */
-        public function isShowStackTrace() {
+        public function isShowStackTrace()
+        {
             return $this->showStackTrace;
         }
-
         /**
          * @return bool
          */
-        public function isShowHeaderBanner() {
+        public function isShowHeaderBanner()
+        {
             return $this->showHeaderBanner;
         }
-
         /**
          * @return bool
          */
@@ -187,17 +182,13 @@ namespace ExEngine {
         {
             return $this->dbConnectionAuto;
         }
-
-
-
         /* setters */
-
         /* default overridables */
-
         /**
          * Default overridable method for defining a database connection. Do not call parent::dbInit();
          */
-        public function dbInit() {
+        public function dbInit()
+        {
             if (class_exists("\\R")) {
                 \R::setup();
             }
