@@ -120,7 +120,16 @@ namespace ExEngine {
         protected $showStackTrace = true;
         protected $showHeaderBanner = true;
         protected $dbConnectionAuto = false;
+        protected $launcherFolderPath = "";
         /* getters */
+        /**
+         * Returns the instance launcher folder path.
+         * @return string
+         */
+        public function getLauncherFolderPath()
+        {
+            return $this->launcherFolderPath;
+        }
         /**
          * True if JSON output null suppression is enabled.
          * @return bool
@@ -187,13 +196,33 @@ namespace ExEngine {
          */
         public function dbInit()
         {
-            // Classic version
+            // RedBeanPHP Classic version
             if (class_exists("\\R")) {
                 \R::setup();
-            // Composer version uses PSR-4
+                // RedBeanPHP Composer version uses PSR-4
             } else if (class_exists("\\RedBeanPHP\\R")) {
                 \RedBeanPHP\R::setup();
-            }
+                // POMM
+            } else if (class_exists('\PommProject\Foundation\Pomm')) {
+                if (file_exists($this->launcherFolderPath . '/.pomm_cli_bootstrap.php')) {
+                    $pomm = require $this->launcherFolderPath . '/.pomm_cli_bootstrap.php';
+                    if (sizeof($pomm->getSessionBuilders()) == 0) {
+                        throw new ResponseException("POMM configuration file found, add a connection or override config::dbInit() or uninstall.", 500);
+                    }
+                    return $pomm;
+                } else {
+                    throw new ResponseException("POMM found, please configure or override config::dbInit() or uninstall.", 500);
+                }
+            };
+        }
+
+        /**
+         * BaseConfig constructor, if you override, you must call parent constructor.
+         * @param $launcherFolderPath You must pass the full folder path of your instance launcher, ex. new CoreX(new Config(__DIR__);.
+         */
+        public function __construct($launcherFolderPath)
+        {
+            $this->launcherFolderPath = $launcherFolderPath;
         }
     }
 
@@ -423,6 +452,11 @@ namespace ExEngine {
             }
             if ($this->config->isShowHeaderBanner())
                 header("X-Powered-By: ExEngine");
+
+            if (strlen($this->config->getLauncherFolderPath()) == 0) {
+                throw new \Exception("Launcher folder path must be passed in the Config constructor. If overriden, parent constructor must be called.");
+            }
+
             try {
                 print $this->processArguments();
             } catch (\Throwable $exception) {

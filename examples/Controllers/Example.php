@@ -8,10 +8,9 @@ class User extends \ExEngine\DataClass {
 
 }
 
-// To call this class methods use the Query String: http://localhost/index.php/Test/mydataclass, for example.
 class Test {
 
-    // Anonymous data class
+    // Anonymous data class (PHP 7+). Use http://localhost/index.php/Test/main to call this method.
     function main() : \ExEngine\DataClass {
         return new class extends \ExEngine\DataClass {
             protected $exampleProperty = "Hello World";
