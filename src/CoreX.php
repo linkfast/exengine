@@ -440,21 +440,33 @@ namespace ExEngine {
 
         /**
          * ExEngine Core X constructor.
-         * @param BaseConfig|null $config
+         * @param BaseConfig|string|null $config
          */
-        function __construct(BaseConfig $config = null)
+        function __construct($baseConfigChildInstanceOrLauncherFolderPath = null)
         {
             CoreX::$instance = $this;
-            if ($config != null && $config instanceof BaseConfig) {
-                $this->config = &$config;
+            if ($baseConfigChildInstanceOrLauncherFolderPath == null) {
+                throw new \Exception('CoreX first parameter must be either a string containing the launcher ' .
+                    'folder path or an instantiated BaseConfig child class. Example: new \ExEngine\CoreX(__DIR__);');
+            }
+            if ($baseConfigChildInstanceOrLauncherFolderPath instanceof BaseConfig) {
+                $this->config = &$baseConfigChildInstanceOrLauncherFolderPath;
             } else {
-                $this->config = new DefaultConfig();
+                if (is_string($baseConfigChildInstanceOrLauncherFolderPath) && file_exists($baseConfigChildInstanceOrLauncherFolderPath) && is_dir($baseConfigChildInstanceOrLauncherFolderPath)) {
+                    $this->config = new DefaultConfig($baseConfigChildInstanceOrLauncherFolderPath);
+                } else {
+                    throw new \Exception("If default config is being used, you must pass the launcher folder path. Example: new \ExEngine\CoreX(__DIR__);");
+                }
             }
             if ($this->config->isShowHeaderBanner())
                 header("X-Powered-By: ExEngine");
 
             if (strlen($this->config->getLauncherFolderPath()) == 0) {
                 throw new \Exception("Launcher folder path must be passed in the Config constructor. If overriden, parent constructor must be called.");
+            } else {
+                if (!file_exists($this->config->getLauncherFolderPath()) || !is_dir($this->config->getLauncherFolderPath())) {
+                    throw new \Exception("Launcher folder path is invalid or does not exists. Please use PHP's constant `__DIR__` from the instance launcher.");
+                }
             }
 
             try {

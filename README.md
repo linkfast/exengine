@@ -19,7 +19,7 @@
         // or
         include_once 'vendor/autoload.php';
 
-        new \ExEngine\CoreX();
+        new \ExEngine\CoreX(__DIR__);
     ```
 
 3. Create a folder called `_` relative to `index.php`. Inside of this new folder, create a file called `Test.php` with the following contents:
