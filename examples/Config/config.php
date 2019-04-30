@@ -1,12 +1,16 @@
 <?php
 /**
- * Example configuration class for ExEngine X
+ * Example configuration class for ExEngine Microframework
  *
- * The definition of this class is completely optional.
+ * The definition of this class is completely optional, please check the documentation provided in the
+ * wiki for more information of configuring ExEngine:
+ * https://gitlab.com/linkfast-oss/exengine/wikis/config
+ *
+ * Last updated: 30 Apr 2019
  */
 class Config extends ExEngine\BaseConfig
 {
-    // Here you can override the defaults, check docs for all names or the CoreX.php file.
+    // Here you can override the defaults, check docs for all names.
 //    protected $usePrettyPrint = true;
 //    protected $showStackTrace = false;
 
@@ -19,13 +23,13 @@ class Config extends ExEngine\BaseConfig
 //        // code...
 //        // more code...
 //
-//        // Then you must call parent constructor
+//        // Then you MUST call parent constructor
 //        parent::__construct($launcherFolderPath);
 //    }
 
     // Set your database connection information here.
-    // ExEngine X has defaults for RedBeanPHP (SQLite testing) and POMM (exactly as it explains the Quick Pomm2 Setup
-    // Guide), if using alternate configurations (RedBeanPHP:MySQL/PostgreSQL/etc or different POMM settings), you can
+    // ExEngine has defaults for RedBeanPHP (SQLite testing) and POMM (exactly as it explains the Quick Pomm2 Setup
+    // Guide), if using alternate configurations (RedBeanPHP:MySQL/PostgreSQL/etc or custom POMM settings), you can
     // override here.
 //    public function dbInit()
 //    {

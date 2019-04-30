@@ -15,7 +15,7 @@
 
     ```php
     <?php
-        include_once 'CoreX.php';
+        include_once 'exengine.php';
         // or
         include_once 'vendor/autoload.php';
 

@@ -1,5 +1,6 @@
 <?php
 /* PHP Version Check */
+
 namespace {
     if (version_compare(PHP_VERSION, '5.6.0', '<')) {
         print '<h1>ExEngine</h1><p>ExEngine requires PHP 5.6 or higher, please update your installation.</p>';
@@ -9,17 +10,20 @@ namespace {
 /**
  * ExEngine namespace.
  */
+
 namespace ExEngine {
 
     use Throwable;
 
-    class Rest {
+    class Rest
+    {
         /**
          * @param array $argument_array
          * @return mixed
          * @throws ResponseException
          */
-        final function executeRest(array $argument_array) {
+        final function executeRest(array $argument_array)
+        {
             $request_method = 'get';
             if (isset($_SERVER['REQUEST_METHOD'])) {
                 $request_method = strtolower($_SERVER['REQUEST_METHOD']);
@@ -27,7 +31,7 @@ namespace ExEngine {
             if (method_exists($this, $request_method)) {
                 return call_user_func_array([$this, $request_method], $argument_array);
             } else {
-                throw new ResponseException("REST Method (".$request_method.") is not defined.", 404);
+                throw new ResponseException("REST Method (" . $request_method . ") is not defined.", 404);
             }
         }
     }
@@ -79,8 +83,9 @@ namespace ExEngine {
      * Simple extension to PHP's Exception class.
      * @package ExEngine
      */
-    class ResponseException extends \Exception {
-        public function __construct($message = "",$code = 0, Throwable $previous = null)
+    class ResponseException extends \Exception
+    {
+        public function __construct($message = "", $code = 0, Throwable $previous = null)
         {
             parent::__construct($message, $code, $previous);
         }
@@ -105,7 +110,8 @@ namespace ExEngine {
             }
         }
 
-        public final function isSupressNulls() {
+        public final function isSupressNulls()
+        {
             return $this->supressNulls;
         }
     }
@@ -130,6 +136,7 @@ namespace ExEngine {
         {
             return $this->launcherFolderPath;
         }
+
         /**
          * True if JSON output null suppression is enabled.
          * @return bool
@@ -138,6 +145,7 @@ namespace ExEngine {
         {
             return $this->suppressNulls;
         }
+
         /**
          * Returns the controller's folder.
          * @return string
@@ -146,6 +154,7 @@ namespace ExEngine {
         {
             return $this->controllersLocation;
         }
+
         /**
          * Returns true if pretty JSON printing is enabled.
          * @return bool
@@ -154,6 +163,7 @@ namespace ExEngine {
         {
             return $this->usePrettyPrint;
         }
+
         /**
          * @return string
          */
@@ -161,6 +171,7 @@ namespace ExEngine {
         {
             return $this->showVersionInfo;
         }
+
         /**
          * @return mixed
          */
@@ -168,6 +179,7 @@ namespace ExEngine {
         {
             return $this->sessionConfig;
         }
+
         /**
          * @return bool
          */
@@ -175,6 +187,7 @@ namespace ExEngine {
         {
             return $this->showStackTrace;
         }
+
         /**
          * @return bool
          */
@@ -182,6 +195,7 @@ namespace ExEngine {
         {
             return $this->showHeaderBanner;
         }
+
         /**
          * @return bool
          */
@@ -313,7 +327,8 @@ namespace ExEngine {
          * @param string $ControllerFilePath
          * @return string
          */
-        private function getController($ControllerFilePath) {
+        private function getController($ControllerFilePath)
+        {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFilePath . '.php';
         }
 
@@ -321,7 +336,8 @@ namespace ExEngine {
          * @param string $ControllerFolder
          * @return string
          */
-        private function getControllerFolder($ControllerFolder) {
+        private function getControllerFolder($ControllerFolder)
+        {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFolder;
         }
 
@@ -341,7 +357,7 @@ namespace ExEngine {
 
             preg_match("/(?:\.php\/)(.*?)(?:\?|$)/", $reqUri, $matches, PREG_OFFSET_CAPTURE);
             //print_r($matches);
-            if (count($matches) > 1 ) {
+            if (count($matches) > 1) {
                 $access = explode('/', $matches[1][0]);
 
                 if (strlen($access[0]) == 0) {
@@ -355,10 +371,10 @@ namespace ExEngine {
                 // Find and instantiate controller.
                 if (count($access) > 0) {
                     $fpart = $access[0];
-                    $uc_fpart =  ucfirst($fpart);
+                    $uc_fpart = ucfirst($fpart);
                     // Check if controller exists and load it.
                     if (file_exists($this->getController($fpart))) {
-                        include_once ($this->getController($fpart));
+                        include_once($this->getController($fpart));
                         $classObj = new $uc_fpart();
                         // check if method is defined
                         if (count($access) > 1) {
@@ -372,7 +388,7 @@ namespace ExEngine {
                             // Check if is folder, and load if controller found.
                             if (is_dir($this->getControllerFolder($fpart))) {
                                 if (file_exists($this->getControllerFolder($fpart) . '/' . $spart . '.php')) {
-                                    include_once ($this->getControllerFolder($fpart) . '/' . $spart . '.php');
+                                    include_once($this->getControllerFolder($fpart) . '/' . $spart . '.php');
                                     $classObj = new $uc_spart();
 
                                     // check if method is defined
@@ -395,6 +411,7 @@ namespace ExEngine {
                     throw new ResponseException("Not found.", 404);
                 }
 
+                $isRestController = false;
                 if (isset($classObj) && $classObj instanceof Rest) {
                     // connect to database if autoconnection is enabled
                     if ($this->getConfig()->isDbConnectionAuto()) {
@@ -402,10 +419,11 @@ namespace ExEngine {
                     }
                     // if controller is Rest, execute directly depending on the method.
                     try {
-                        $data = $classObj->executeRest(array_slice($access,1));
+                        $data = $classObj->executeRest(array_slice($access, 1));
                     } catch (\Throwable $restException) {
                         throw new ResponseException($restException->getMessage(), 500, $restException);
                     }
+                    $isRestController = true;
                 } else {
                     // if not, check if method is defined
                     if (isset($classObj) && method_exists($classObj, $method)) {
@@ -424,15 +442,32 @@ namespace ExEngine {
                     $data = $data->expose();
                 }
 
+
                 $end = time();
 
-                if (isset($data) && is_array($data)) {
-                    header('Content-type: application/json');
-                    return json_encode((new StandardResponse($end - $start, $httpCode, $data))->expose());
-                } else {
-                    if (isset($data))
+                if (isset($data)) {
+                    if (is_array($data)) {
+                        if (!isset($data['_useStandardResponse'])) {
+                            // Not defined. For REST controllers is disabled but in standard controllers is enabled
+                            // by default.
+                            if ($isRestController) {
+                                $data['_useStandardResponse'] = false;
+                            } else {
+                                $data['_useStandardResponse'] = true;
+                            }
+                        }
+                        header('Content-type: application/json');
+                        if ($data["_useStandardResponse"]) {
+                            return json_encode((new StandardResponse($end - $start, $httpCode, $data))->expose());
+                        } else {
+                            return json_encode($data);
+                        }
+                    } else {
+                        // Return RAW if it is not safely serializable.
                         return $data;
+                    }
                 }
+
             } else {
                 throw new ResponseException("Not found.", 404);
             }
