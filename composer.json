@@ -19,7 +19,8 @@
         "docs": "https://gitlab.com/linkfast-oss/exengine/wikis/home"
     },
     "require": {
-        "php": ">=5.6.0"
+        "php": ">=5.6.0",
+        "ext-json": "*"
     },
     "autoload": {
         "files":  [

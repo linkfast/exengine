@@ -1,20 +1,33 @@
 <?php
+/**
+ *  @@@@@@@@@@@  @@@@     @@@@  @@@@@@@@@@@  @@@     @@@    @@@@@@@@@@  @@@@ @@@@     @@@  @@@@@@@@@@@
+ *  @@@            @@@@@@@@@    @@@         @@@@@@   @@@  @@@@@         @@@  @@@@@@   @@@ @@@@
+ * @@@@@@@@@@@       @@@@      @@@@@@@@@@@  @@@@@@@@ @@@ @@@  @@@@@@@@  @@@  @@ @@@@@@@@  @@@@@@@@@@
+ * @@@            @@@@@@@@@    @@@         @@@   @@@@@@  @@@@     @@@@ @@@  @@@   @@@@@@  @@@
+ * @@@@@@@@@@   @@@@    @@@@@  @@@@@@@@@@  @@@     @@@@   @@@@@@@@@@@  @@@  @@@     @@@@ @@@@@@@@@@@
+ *
+ * https://gitlab.com/linkfast-oss/exengine
+ */
 /* PHP Version Check */
-
 namespace {
     if (version_compare(PHP_VERSION, '5.6.0', '<')) {
-        print '<h1>ExEngine</h1><p>ExEngine requires PHP 5.6 or higher, please update your installation.</p>';
+        print 'ExEngine requires PHP 5.6 or higher, please update your installation.';
         exit();
     }
 }
 /**
  * ExEngine namespace.
  */
-
 namespace ExEngine {
 
+    use function ee;
+    use Exception;
     use Throwable;
-
+    /**
+     * Class Rest
+     *
+     * @package ExEngine
+     */
     class Rest
     {
         /**
@@ -31,15 +44,14 @@ namespace ExEngine {
             if (method_exists($this, $request_method)) {
                 return call_user_func_array([$this, $request_method], $argument_array);
             } else {
-                throw new ResponseException("REST Method (" . $request_method . ") is not defined.", 404);
+                throw new ResponseException("REST Method (".$request_method.") is not defined.", 404);
             }
         }
     }
-
     /**
      * Class DataClass
      * This class is supposed to be used as a parent of any object returning function.
-     * ExEngine Core will automatically parse the properties as a json object.
+     * ExEngine Core will automatically parse and serialize the properties as a JSON string.
      * Available modifiers:
      *  supressNulls: if true, all non-initialized or null properties will be stripped out.
      *      Can be set globally in `BaseConfig::supressNulls` or in `$this->dcConfiguration->supressNulls`.
@@ -49,17 +61,17 @@ namespace ExEngine {
     {
         /**
          * Contains the DataClass configuration, should be set it in the child constructor.
-         * @var null|\ExEngine\DataClassLocalConfig
+         * @var null|DataClassLocalConfig
          */
         protected $dcConfiguration = null;
 
         /**
-         * Converts all properties into a serializable array.
+         * Converts all object properties into a serializable array.
          * @return array
          */
         final public function expose()
         {
-            if ((\ee()->getConfig()->isSuppressNulls() && $this->dcConfiguration == null) ||
+            if ((ee()->getConfig()->isSuppressNulls() && $this->dcConfiguration == null) ||
                 ($this->dcConfiguration != null && $this->dcConfiguration->isSupressNulls())) {
                 return array_filter(get_object_vars($this), function ($v) {
                     if ($v === $this->dcConfiguration) {
@@ -77,45 +89,42 @@ namespace ExEngine {
             }
         }
     }
-
     /**
      * Class ResponseException
      * Simple extension to PHP's Exception class.
      * @package ExEngine
      */
-    class ResponseException extends \Exception
+    class ResponseException extends Exception
     {
         public function __construct($message = "", $code = 0, Throwable $previous = null)
         {
             parent::__construct($message, $code, $previous);
         }
     }
-
+    /**
+     * Class DataClassLocalConfig
+     * @package ExEngine
+     */
     class DataClassLocalConfig
     {
         protected $supressNulls = false;
-
         /**
          * DataClassLocalConfig constructor.
          * @param bool|null $suppressNulls Activates `DataClass` automatic null suppression.
          */
-        public final function __construct(
-            $suppressNulls = null
-        )
+        public final function __construct($suppressNulls = null)
         {
-            if ($suppressNulls === null) {
-                $this->supressNulls = \ee()->getConfig()->isSuppressNulls();
-            } else {
-                $this->supressNulls = $suppressNulls;
-            }
+            $this->supressNulls = ($suppressNulls === null) ? ee()->getConfig()->isSuppressNulls() : $suppressNulls;
         }
-
         public final function isSupressNulls()
         {
             return $this->supressNulls;
         }
     }
-
+    /**
+     * Class BaseConfig
+     * @package ExEngine
+     */
     abstract class BaseConfig
     {
         /* config default values */
@@ -136,7 +145,6 @@ namespace ExEngine {
         {
             return $this->launcherFolderPath;
         }
-
         /**
          * True if JSON output null suppression is enabled.
          * @return bool
@@ -145,7 +153,6 @@ namespace ExEngine {
         {
             return $this->suppressNulls;
         }
-
         /**
          * Returns the controller's folder.
          * @return string
@@ -154,7 +161,6 @@ namespace ExEngine {
         {
             return $this->controllersLocation;
         }
-
         /**
          * Returns true if pretty JSON printing is enabled.
          * @return bool
@@ -163,7 +169,6 @@ namespace ExEngine {
         {
             return $this->usePrettyPrint;
         }
-
         /**
          * @return string
          */
@@ -171,15 +176,6 @@ namespace ExEngine {
         {
             return $this->showVersionInfo;
         }
-
-        /**
-         * @return mixed
-         */
-        public function getSessionConfig()
-        {
-            return $this->sessionConfig;
-        }
-
         /**
          * @return bool
          */
@@ -187,7 +183,6 @@ namespace ExEngine {
         {
             return $this->showStackTrace;
         }
-
         /**
          * @return bool
          */
@@ -195,7 +190,6 @@ namespace ExEngine {
         {
             return $this->showHeaderBanner;
         }
-
         /**
          * @return bool
          */
@@ -207,6 +201,8 @@ namespace ExEngine {
         /* default overridables */
         /**
          * Default overridable method for defining a database connection. Do not call parent::dbInit();
+         * @throws ResponseException
+         * @return void
          */
         public function dbInit()
         {
@@ -227,38 +223,44 @@ namespace ExEngine {
                 } else {
                     throw new ResponseException("POMM found, please configure or override config::dbInit() or uninstall.", 500);
                 }
-            };
+            }
         }
-
         /**
          * BaseConfig constructor, if you override, you must call parent constructor.
-         * @param $launcherFolderPath You must pass the full folder path of your instance launcher, ex. new CoreX(new Config(__DIR__);.
+         * @param $launcherFolderPath string You must pass the full folder path of your instance launcher, ex. new CoreX(new Config(__DIR__);.
          */
         public function __construct($launcherFolderPath)
         {
             $this->launcherFolderPath = $launcherFolderPath;
         }
     }
-
-    class DefaultConfig extends BaseConfig
-    {
-    }
-
+    /**
+     * Class DefaultConfig
+     * Default implementation of the BaseConfig abstract class.
+     * @package ExEngine
+     */
+    class DefaultConfig extends BaseConfig { }
+    /**
+     * Class ErrorDetail
+     * This class is used to represent an error to the general output.
+     * @package ExEngine
+     */
     class ErrorDetail extends DataClass
     {
         protected $stackTrace = [];
         protected $message = "";
-
-        function __construct(
-            array $stackTrace = null,
-            $message
-        )
+        function __construct($message, array $stackTrace = null)
         {
             $this->stackTrace = $stackTrace;
             $this->message = $message;
         }
     }
 
+    /**
+     * Class StandardResponse
+     * Standard data encapsulation for responses.
+     * @package ExEngine
+     */
     class StandardResponse extends DataClass
     {
         protected $took = 0;
@@ -266,7 +268,6 @@ namespace ExEngine {
         protected $data = null;
         protected $error = false;
         protected $errorDetails = null;
-
         /**
          * StandardResponse constructor.
          * @param int $took
@@ -348,26 +349,18 @@ namespace ExEngine {
          */
         private function processArguments()
         {
-
             $start = time();
             $reqUri = $_SERVER['REQUEST_URI'];
             $httpCode = 200;
-            $method = $_SERVER['REQUEST_METHOD'];
-            //error_log('method: ' . $method);
-
             preg_match("/(?:\.php\/)(.*?)(?:\?|$)/", $reqUri, $matches, PREG_OFFSET_CAPTURE);
-            //print_r($matches);
             if (count($matches) > 1) {
                 $access = explode('/', $matches[1][0]);
-
                 if (strlen($access[0]) == 0) {
                     // if the controller/folder name is empty
                     throw new ResponseException("Not found.", 404);
                 }
-
-                $method = "";
+                $method = $_SERVER['REQUEST_METHOD'];
                 $arguments = [];
-
                 // Find and instantiate controller.
                 if (count($access) > 0) {
                     $fpart = $access[0];
@@ -388,9 +381,8 @@ namespace ExEngine {
                             // Check if is folder, and load if controller found.
                             if (is_dir($this->getControllerFolder($fpart))) {
                                 if (file_exists($this->getControllerFolder($fpart) . '/' . $spart . '.php')) {
-                                    include_once($this->getControllerFolder($fpart) . '/' . $spart . '.php');
+                                    include_once($this->getControllerFolder($fpart).'/'.$spart.'.php');
                                     $classObj = new $uc_spart();
-
                                     // check if method is defined
                                     if (count($access) > 2) {
                                         $method = $access[2];
@@ -410,7 +402,6 @@ namespace ExEngine {
                     // if the controller/folder name is not defined correctly
                     throw new ResponseException("Not found.", 404);
                 }
-
                 $isRestController = false;
                 if (isset($classObj) && $classObj instanceof Rest) {
                     // connect to database if autoconnection is enabled
@@ -437,14 +428,10 @@ namespace ExEngine {
                         throw new ResponseException("Not found.", 404);
                     }
                 }
-
                 if (isset($data) && $data instanceof DataClass) {
                     $data = $data->expose();
                 }
-
-
                 $end = time();
-
                 if (isset($data)) {
                     if (is_array($data)) {
                         if (!isset($data['_useStandardResponse'])) {
@@ -466,22 +453,24 @@ namespace ExEngine {
                         // Return RAW if it is not safely serializable.
                         return $data;
                     }
+                } else {
+                    // $data is not set
+                    throw new ResponseException("Server internal error.", 500);
                 }
-
             } else {
                 throw new ResponseException("Not found.", 404);
             }
         }
-
         /**
-         * ExEngine Core X constructor.
-         * @param BaseConfig|string|null $config
+         * CoreX constructor.
+         * @param BaseConfig|string|null $baseConfigChildInstanceOrLauncherFolderPath
+         * @throws Exception
          */
         function __construct($baseConfigChildInstanceOrLauncherFolderPath = null)
         {
             CoreX::$instance = $this;
             if ($baseConfigChildInstanceOrLauncherFolderPath == null) {
-                throw new \Exception('CoreX first parameter must be either a string containing the launcher ' .
+                throw new Exception('CoreX first parameter must be either a string containing the launcher ' .
                     'folder path or an instantiated BaseConfig child class. Example: new \ExEngine\CoreX(__DIR__);');
             }
             if ($baseConfigChildInstanceOrLauncherFolderPath instanceof BaseConfig) {
@@ -490,17 +479,15 @@ namespace ExEngine {
                 if (is_string($baseConfigChildInstanceOrLauncherFolderPath) && file_exists($baseConfigChildInstanceOrLauncherFolderPath) && is_dir($baseConfigChildInstanceOrLauncherFolderPath)) {
                     $this->config = new DefaultConfig($baseConfigChildInstanceOrLauncherFolderPath);
                 } else {
-                    throw new \Exception("If default config is being used, you must pass the launcher folder path. Example: new \ExEngine\CoreX(__DIR__);");
+                    throw new Exception("If default config is being used, you must pass the launcher folder path. Example: new \ExEngine\CoreX(__DIR__);");
                 }
             }
-            if ($this->config->isShowHeaderBanner())
-                header("X-Powered-By: ExEngine");
-
+            if ($this->config->isShowHeaderBanner()) header("Y-Powered-By: ExEngine");
             if (strlen($this->config->getLauncherFolderPath()) == 0) {
-                throw new \Exception("Launcher folder path must be passed in the Config constructor. If overriden, parent constructor must be called.");
+                throw new Exception("Launcher folder path must be passed in the Config constructor. If overriden, parent constructor must be called.");
             } else {
                 if (!file_exists($this->config->getLauncherFolderPath()) || !is_dir($this->config->getLauncherFolderPath())) {
-                    throw new \Exception("Launcher folder path is invalid or does not exists. Please use PHP's constant `__DIR__` from the instance launcher.");
+                    throw new Exception("Launcher folder path is invalid or does not exists. Please use PHP's constant `__DIR__` from the instance launcher.");
                 }
             }
 
@@ -508,7 +495,7 @@ namespace ExEngine {
                 print $this->processArguments();
             } catch (\Throwable $exception) {
                 $trace = $this->getConfig()->isShowStackTrace() ? $exception->getTrace() : null;
-                $resp = new StandardResponse(0, $exception->getCode(), null, true, new ErrorDetail($trace, $exception->getMessage()));
+                $resp = new StandardResponse(0, $exception->getCode(), null, true, new ErrorDetail($exception->getMessage(), $trace));
                 http_response_code($exception->getCode());
                 header('Content-type: application/json');
                 print json_encode($resp->expose(), $this->usePrettyPrint());
