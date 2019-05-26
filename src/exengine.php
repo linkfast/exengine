@@ -119,7 +119,7 @@ namespace ExEngine {
     abstract class BaseConfig
     {
         /* config default values */
-        protected $controllersLocation = "_";
+        protected $controllersLocation = "._";
         protected $usePrettyPrint = true;
         protected $showVersionInfo = "MINIMAL";
         protected $suppressNulls = true;
@@ -127,7 +127,26 @@ namespace ExEngine {
         protected $showHeaderBanner = true;
         protected $dbConnectionAuto = false;
         protected $launcherFolderPath = "";
+        protected $filters = [];
+        protected $production = false;
         /* getters */
+        /**
+         * True if production optimizations are enabled. Please test your app in development mode first, production
+         * mode will disable most of classes/methods/duplicates/etc checks to improve performance.
+         * @return bool
+         */
+        public function isProduction()
+        {
+            return $this->production;
+        }
+        /**
+         * Returns an array with the filters to be chained.
+         * @return Filter[]
+         */
+        public function getFilters()
+        {
+            return $this->filters;
+        }
         /**
          * Returns the instance launcher folder path.
          * @return string
@@ -179,7 +198,6 @@ namespace ExEngine {
         {
             return $this->sessionConfig;
         }
-
         /**
          * @return bool
          */
@@ -187,7 +205,6 @@ namespace ExEngine {
         {
             return $this->showStackTrace;
         }
-
         /**
          * @return bool
          */
@@ -195,7 +212,6 @@ namespace ExEngine {
         {
             return $this->showHeaderBanner;
         }
-
         /**
          * @return bool
          */
@@ -203,7 +219,28 @@ namespace ExEngine {
         {
             return $this->dbConnectionAuto;
         }
-        /* setters */
+        /* non overridable methods */
+        final public function registerFilter(Filter $filter) {
+            if (!$this->isProduction()) {
+                if (!$filter instanceof Filter) {
+                    throw new ResponseException("Invalid filter is trying to be registered in chain. Filters must
+                    be an instance of IFilter interface.", 500);
+                }
+                $class = new ReflectionClass($filter);
+                $method = $class->getMethod("doFilter");
+                if ($method->class != get_class($filter)) {
+                    throw new ResponseException("Invalid filter is trying to be registered in chain. Filters must
+                    implement the 'doFilter' method.", 500);
+                }
+                foreach ($this->filters as $registeredFilter) {
+                    if (get_class($registeredFilter) == get_class($filter)) {
+                        CoreX::addDevelopmentMessage(['WARNING' => 'Filter class '.get_class($registeredFilter).' is 
+                            registered twice, not an error, but maybe a typo.']);
+                    }
+                }
+            }
+            $this->filters[] = $filter;
+        }
         /* default overridables */
         /**
          * Default overridable method for defining a database connection. Do not call parent::dbInit();
@@ -266,6 +303,7 @@ namespace ExEngine {
         protected $data = null;
         protected $error = false;
         protected $errorDetails = null;
+        protected $developmentMessages = null;
 
         /**
          * StandardResponse constructor.
@@ -273,29 +311,96 @@ namespace ExEngine {
          * @param int $code
          * @param array|NULL $data
          * @param bool $error
-         * @param ErrorDetail|NULL $errorDetails
+         * @param ErrorDetail|NULL|false $errorDetails
+         * @param array|NULL|false $developmentMessages When set to an array, displays the development messages to the
+         *                                              exposed http response body.
          */
         function __construct(
             $took,
             $code,
             array $data = NULL,
             $error = false,
-            ErrorDetail $errorDetails = NULL
+            ErrorDetail $errorDetails = NULL,
+            $developmentMessages = NULL
         )
         {
             $this->code = $code;
             $this->took = $took;
             $this->data = $data;
             $this->error = $error;
-            if ($error != false) {
+            if (!\ee()->getConfig()->isProduction())
+                if ($developmentMessages != NULL || $developmentMessages != false) {
+                    $this->developmentMessages = $developmentMessages;
+                }
+            if ($error != NULL || $error != false) {
                 $this->errorDetails = $errorDetails->expose();
             }
         }
     }
 
+    class ControllerMeta {
+        private $className = '';
+        private $methodName = '';
+        private $arguments = [];
+
+        /**
+         * ControllerMeta constructor.
+         * @param string $className
+         * @param string $methodName
+         * @param array $arguments
+         */
+        public function __construct($className, $methodName, array $arguments)
+        {
+            $this->className = $className;
+            $this->methodName = $methodName;
+            $this->arguments = $arguments;
+        }
+
+        /**
+         * @return string
+         */
+        public function getClassName()
+        {
+            return $this->className;
+        }
+
+        /**
+         * @return string
+         */
+        public function getMethodName()
+        {
+            return $this->methodName;
+        }
+
+        /**
+         * @return array
+         */
+        public function getArguments()
+        {
+            return $this->arguments;
+        }
+
+
+
+    }
+
+    abstract class Filter {
+        abstract function doFilter(ControllerMeta $controllerMeta, $previousFilterData = null);
+        final public function __construct() {}
+    }
+
     class CoreX
     {
         private static $instance = null;
+        private static $developmentMessages = [];
+        /**
+         * Adds a message (can be any serializable object) to the DevelopmentMessages chain, only available
+         * in development mode and with Standard responses.
+         * @param string|mixed $message
+         */
+        public static function addDevelopmentMessage($message) {
+            CoreX::$developmentMessages[] = $message;
+        }
 
         /**
          * @return CoreX
@@ -341,6 +446,23 @@ namespace ExEngine {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFolder;
         }
 
+        private $filterData = null;
+
+        public function getFilterData() {
+            return $this->filterData;
+        }
+
+        private function processFilters(ControllerMeta $controllerMeta) {
+            $previousFilterData = null;
+            foreach ($this->getConfig()->getFilters() as $filter) {
+                $tpFilterData = $filter->doFilter($controllerMeta, $previousFilterData);
+                if ($tpFilterData != null) {
+                    $previousFilterData = $tpFilterData;
+                }
+            }
+            $this->filterData = $previousFilterData;
+        }
+
         /**
          * Url query parser and executor.
          * @return string
@@ -365,6 +487,7 @@ namespace ExEngine {
                     throw new ResponseException("Not found.", 404);
                 }
 
+                $className = "";
                 $method = "";
                 $arguments = [];
 
@@ -376,6 +499,7 @@ namespace ExEngine {
                     if (file_exists($this->getController($fpart))) {
                         include_once($this->getController($fpart));
                         $classObj = new $uc_fpart();
+                        $className = $uc_fpart;
                         // check if method is defined
                         if (count($access) > 1) {
                             $method = $access[1];
@@ -390,7 +514,7 @@ namespace ExEngine {
                                 if (file_exists($this->getControllerFolder($fpart) . '/' . $spart . '.php')) {
                                     include_once($this->getControllerFolder($fpart) . '/' . $spart . '.php');
                                     $classObj = new $uc_spart();
-
+                                    $className = $uc_spart;
                                     // check if method is defined
                                     if (count($access) > 2) {
                                         $method = $access[2];
@@ -419,8 +543,17 @@ namespace ExEngine {
                     }
                     // if controller is Rest, execute directly depending on the method.
                     try {
+                        // Extract Controller Meta
+                        $controllerMeta = new ControllerMeta($className,
+                            strtolower($_SERVER['REQUEST_METHOD']), $arguments);
+                        // Process Filters
+                        $this->processFilters($controllerMeta);
+                        // Execute Method
                         $data = $classObj->executeRest(array_slice($access, 1));
                     } catch (\Throwable $restException) {
+                        if ($restException instanceof ResponseException) {
+                            throw $restException;
+                        }
                         throw new ResponseException($restException->getMessage(), 500, $restException);
                     }
                     $isRestController = true;
@@ -428,8 +561,16 @@ namespace ExEngine {
                     // if not, check if method is defined
                     if (isset($classObj) && method_exists($classObj, $method)) {
                         try {
+                            // Extract Controller Meta
+                            $controllerMeta = new ControllerMeta($className,$method, $arguments);
+                            // Process Filters
+                            $this->processFilters($controllerMeta);
+                            // Execute Method
                             $data = call_user_func_array([$classObj, $method], $arguments);
                         } catch (\Throwable $methodException) {
+                            if ($methodException instanceof ResponseException) {
+                                throw $methodException;
+                            }
                             throw new ResponseException($methodException->getMessage(), 500, $methodException);
                         }
                     } else {
@@ -441,9 +582,9 @@ namespace ExEngine {
                 if (isset($data) && $data instanceof DataClass) {
                     $data = $data->expose();
                 }
-
-
                 $end = time();
+
+
 
                 if (isset($data)) {
                     if (is_array($data)) {
@@ -458,7 +599,14 @@ namespace ExEngine {
                         }
                         header('Content-type: application/json');
                         if ($data["_useStandardResponse"]) {
-                            return json_encode((new StandardResponse($end - $start, $httpCode, $data))->expose());
+                            return json_encode(
+                                (new StandardResponse($end - $start,
+                                    $httpCode,
+                                    $data,
+                                    false,
+                                    NULL,
+                                    CoreX::$developmentMessages)
+                                )->expose());
                         } else {
                             return json_encode($data);
                         }
@@ -479,6 +627,9 @@ namespace ExEngine {
          */
         function __construct($baseConfigChildInstanceOrLauncherFolderPath = null)
         {
+            if (CoreX::$instance != null) {
+                throw new \Exception("CoreX is already instantiated, cannot instantiate twice. Please check.");
+            }
             CoreX::$instance = $this;
             if ($baseConfigChildInstanceOrLauncherFolderPath == null) {
                 throw new \Exception('CoreX first parameter must be either a string containing the launcher ' .
@@ -493,9 +644,13 @@ namespace ExEngine {
                     throw new \Exception("If default config is being used, you must pass the launcher folder path. Example: new \ExEngine\CoreX(__DIR__);");
                 }
             }
-            if ($this->config->isShowHeaderBanner())
-                header("X-Powered-By: ExEngine");
-
+            if ($this->config->isShowHeaderBanner()) {
+                if (!$this->config->isProduction()) {
+                    header("Y-Powered-By: ExEngine - Development Mode");
+                } else {
+                    header("Y-Powered-By: ExEngine");
+                }
+            }
             if (strlen($this->config->getLauncherFolderPath()) == 0) {
                 throw new \Exception("Launcher folder path must be passed in the Config constructor. If overriden, parent constructor must be called.");
             } else {

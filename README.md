@@ -9,7 +9,7 @@
     composer install linkfast-oss/exengine
     ````
 
-2. Create a loader
+2. Create an instance launcher
 
     Create an `index.php` file in the root of the folder exposed to the HTTP server, and include there `vendor.php` if using `composer` or the `CoreX.php` file.
 
@@ -21,11 +21,14 @@
 
         new \ExEngine\CoreX(__DIR__);
     ```
+    
+    You can create a custom `config` class with settings for database connection, etc.
 
-3. Create a folder called `_` relative to `index.php`. Inside of this new folder, create a file called `Test.php` with the following contents:
+3. Create a folder called `._` relative to `index.php`. Inside of this new folder, create a file called `Test.php` with the following contents:
 
     ```php
     <?php
+       # File ´._/Test.php´
         class Test {
             function helloworld() {
                 return "<h1>Hello World</h1>";
