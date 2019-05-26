@@ -622,8 +622,9 @@ namespace ExEngine {
         }
 
         /**
-         * ExEngine Core X constructor.
-         * @param BaseConfig|string|null $config
+         * CoreX constructor.
+         * @param BaseConfig|string|null $baseConfigChildInstanceOrLauncherFolderPath
+         * @throws Exception
          */
         function __construct($baseConfigChildInstanceOrLauncherFolderPath = null)
         {
