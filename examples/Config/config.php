@@ -4,7 +4,7 @@
  *
  * The definition of this class is completely optional, please check the documentation provided in the
  * wiki for more information of configuring ExEngine:
- * https://gitlab.com/linkfast-oss/exengine/wikis/config
+ * https://gitlab.com/linkfast-oss/exengine/wikis/Configuration
  *
  * Last updated: 30 Apr 2019
  */

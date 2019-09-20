@@ -129,6 +129,7 @@ namespace ExEngine {
         protected $launcherFolderPath = "";
         protected $filters = [];
         protected $production = false;
+        protected $forceAutoDbInit = false;
         /* getters */
         /**
          * True if production optimizations are enabled. Please test your app in development mode first, production
@@ -138,6 +139,13 @@ namespace ExEngine {
         public function isProduction()
         {
             return $this->production;
+        }
+        /**
+         * @return bool
+         */
+        public function isForceAutoDbInit()
+        {
+            return $this->forceAutoDbInit;
         }
         /**
          * Returns an array with the filters to be chained.
@@ -224,7 +232,7 @@ namespace ExEngine {
             if (!$this->isProduction()) {
                 if (!$filter instanceof Filter) {
                     throw new ResponseException("Invalid filter is trying to be registered in chain. Filters must
-                    be an instance of IFilter interface.", 500);
+                    be an instance of Filter interface.", 500);
                 }
                 $class = new ReflectionClass($filter);
                 $method = $class->getMethod("doFilter");
@@ -235,7 +243,7 @@ namespace ExEngine {
                 foreach ($this->filters as $registeredFilter) {
                     if (get_class($registeredFilter) == get_class($filter)) {
                         CoreX::addDevelopmentMessage(['WARNING' => 'Filter class '.get_class($registeredFilter).' is 
-                            registered twice, not an error, but maybe a typo.']);
+                            registered twice, not an error, but maybe a typo or intentional?.']);
                     }
                 }
             }
@@ -244,27 +252,32 @@ namespace ExEngine {
         /* default overridables */
         /**
          * Default overridable method for defining a database connection. Do not call parent::dbInit();
+         *
+         * Important: Automatic detection and initialization of supported database managers is disabled by default
+         * in production mode. You can force the execution in production mode setting $this->forceAutoDbInit to true.
          */
         public function dbInit()
         {
-            // RedBeanPHP Classic version
-            if (class_exists("\\R")) {
-                \R::setup();
-                // RedBeanPHP Composer version uses PSR-4
-            } else if (class_exists("\\RedBeanPHP\\R")) {
-                \RedBeanPHP\R::setup();
-                // POMM
-            } else if (class_exists('\PommProject\Foundation\Pomm')) {
-                if (file_exists($this->launcherFolderPath . '/.pomm_cli_bootstrap.php')) {
-                    $pomm = require $this->launcherFolderPath . '/.pomm_cli_bootstrap.php';
-                    if (sizeof($pomm->getSessionBuilders()) == 0) {
-                        throw new ResponseException("POMM configuration file found, add a connection or override config::dbInit() or uninstall.", 500);
+            if (!$this->isProduction() && !$this->forceAutoDbInit) {
+                // RedBeanPHP Classic version
+                if (class_exists("\\R")) {
+                    \R::setup();
+                    // RedBeanPHP Composer version uses PSR-4
+                } else if (class_exists("\\RedBeanPHP\\R")) {
+                    \RedBeanPHP\R::setup();
+                    // POMM
+                } else if (class_exists('\PommProject\Foundation\Pomm')) {
+                    if (file_exists($this->launcherFolderPath . '/.pomm_cli_bootstrap.php')) {
+                        $pomm = require $this->launcherFolderPath . '/.pomm_cli_bootstrap.php';
+                        if (sizeof($pomm->getSessionBuilders()) == 0) {
+                            throw new ResponseException("POMM configuration file found, add a connection or override config::dbInit() or uninstall.", 500);
+                        }
+                        return $pomm;
+                    } else {
+                        throw new ResponseException("POMM found, please configure or override config::dbInit() or uninstall.", 500);
                     }
-                    return $pomm;
-                } else {
-                    throw new ResponseException("POMM found, please configure or override config::dbInit() or uninstall.", 500);
-                }
-            };
+                };
+            }
         }
 
         /**
@@ -296,6 +309,11 @@ namespace ExEngine {
         }
     }
 
+    /**
+     * Class StandardResponse
+     * This class is a generic serialization ready response data structure, part of the ExEngine Request Lifecycle
+     * @package ExEngine
+     */
     class StandardResponse extends DataClass
     {
         protected $took = 0;
@@ -338,13 +356,20 @@ namespace ExEngine {
         }
     }
 
-    class ControllerMeta {
+    /**
+     * Class MethodMeta
+     * This class represents the metadata of a controller method just before being executed.
+     * Specially created for using with filters, this allows to have a good structure for using a framework level
+     * filter system, just as for Filter and RESTController classes.
+     * @package ExEngine
+     */
+    class MethodMeta {
         private $className = '';
         private $methodName = '';
         private $arguments = [];
 
         /**
-         * ControllerMeta constructor.
+         * MethodMeta constructor.
          * @param string $className
          * @param string $methodName
          * @param array $arguments
@@ -385,12 +410,16 @@ namespace ExEngine {
     }
 
     abstract class Filter {
-        abstract function doFilter(ControllerMeta $controllerMeta, $previousFilterData = null);
+        abstract function doFilter(MethodMeta $controllerMeta, $filtersData = null);
         final public function __construct() {}
     }
 
     class CoreX
     {
+        /**
+         * This static variable contains the Core X instance that will be accessed globally.
+         * @var CoreX
+         */
         private static $instance = null;
         private static $developmentMessages = [];
         /**
@@ -446,27 +475,23 @@ namespace ExEngine {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFolder;
         }
 
-        private $filterData = null;
+        private $filterData = [];
 
         public function getFilterData() {
             return $this->filterData;
         }
 
-        private function processFilters(ControllerMeta $controllerMeta) {
-            $previousFilterData = null;
+        private function processFilters(MethodMeta $controllerMeta) {
             foreach ($this->getConfig()->getFilters() as $filter) {
-                $tpFilterData = $filter->doFilter($controllerMeta, $previousFilterData);
-                if ($tpFilterData != null) {
-                    $previousFilterData = $tpFilterData;
-                }
+                $this->filterData[get_class($filter)] = $filter->doFilter($controllerMeta, $this->filterData);
             }
-            $this->filterData = $previousFilterData;
         }
 
         /**
          * Url query parser and executor.
          * @return string
          * @throws ResponseException
+         * @throws Throwable
          */
         private function processArguments()
         {
@@ -544,7 +569,7 @@ namespace ExEngine {
                     // if controller is Rest, execute directly depending on the method.
                     try {
                         // Extract Controller Meta
-                        $controllerMeta = new ControllerMeta($className,
+                        $controllerMeta = new MethodMeta($className,
                             strtolower($_SERVER['REQUEST_METHOD']), $arguments);
                         // Process Filters
                         $this->processFilters($controllerMeta);
@@ -562,7 +587,7 @@ namespace ExEngine {
                     if (isset($classObj) && method_exists($classObj, $method)) {
                         try {
                             // Extract Controller Meta
-                            $controllerMeta = new ControllerMeta($className,$method, $arguments);
+                            $controllerMeta = new MethodMeta($className,$method, $arguments);
                             // Process Filters
                             $this->processFilters($controllerMeta);
                             // Execute Method
