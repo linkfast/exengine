@@ -8,9 +8,8 @@ namespace {
     }
 }
 /**
- * ExEngine namespace.
+ * Framework namespace.
  */
-
 namespace ExEngine {
 
     use Throwable;
@@ -255,20 +254,24 @@ namespace ExEngine {
          *
          * Important: Automatic detection and initialization of supported database managers is disabled by default
          * in production mode. You can force the execution in production mode setting $this->forceAutoDbInit to true.
+         *
+         * @throws ResponseException
          */
         public function dbInit()
         {
             if (!$this->isProduction() && !$this->forceAutoDbInit) {
-                // RedBeanPHP Classic version
-                if (class_exists("\\R")) {
+                if (class_exists('\R')) {
+                    // RedBeanPHP Classic version
                     \R::setup();
+                } else if (class_exists('\RedBeanPHP\R')) {
                     // RedBeanPHP Composer version uses PSR-4
-                } else if (class_exists("\\RedBeanPHP\\R")) {
                     \RedBeanPHP\R::setup();
-                    // POMM
                 } else if (class_exists('\PommProject\Foundation\Pomm')) {
-                    if (file_exists($this->launcherFolderPath . '/.pomm_cli_bootstrap.php')) {
-                        $pomm = require $this->launcherFolderPath . '/.pomm_cli_bootstrap.php';
+                    // POMM
+                    $pommLoader = $this->launcherFolderPath . '/.pomm_cli_bootstrap.php';
+                    if (file_exists($pommLoader)) {
+                        /** @noinspection PhpIncludeInspection */
+                        $pomm = require $pommLoader;
                         if (sizeof($pomm->getSessionBuilders()) == 0) {
                             throw new ResponseException("POMM configuration file found, add a connection or override config::dbInit() or uninstall.", 500);
                         }
@@ -276,6 +279,9 @@ namespace ExEngine {
                     } else {
                         throw new ResponseException("POMM found, please configure or override config::dbInit() or uninstall.", 500);
                     }
+                } else if (class_exists('\ExEngine\DBM')) {
+                    // EEDBM
+
                 };
             }
         }
