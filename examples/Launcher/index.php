@@ -12,7 +12,7 @@ include_once '../../src/exengine.php';
 //require __DIR__ . '/vendor/autoload.php';
 
 // Include the file containing the definition of your config, this is optional. Also you can define configuration here.
-//include_once 'config.php';
+//include_once 'SimpleConfig.php';
 
 // Here include whatever you want to be included, for example, I'm including the RedBeam ORM in postgres flavor
 //include_once 'redbean/rb-postgres.php';

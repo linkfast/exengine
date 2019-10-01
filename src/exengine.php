@@ -279,9 +279,9 @@ namespace ExEngine {
                     } else {
                         throw new ResponseException("POMM found, please configure or override config::dbInit() or uninstall.", 500);
                     }
-                } else if (class_exists('\ExEngine\DBM')) {
+                } else if (class_exists('\ExEngine\DBO')) {
                     // EEDBM
-
+                    return \ExEngine\EEDBM('./._EEDBM/');
                 };
             }
         }
@@ -662,7 +662,7 @@ namespace ExEngine {
             if (CoreX::$instance != null) {
                 throw new \Exception("CoreX is already instantiated, cannot instantiate twice. Please check.");
             }
-            CoreX::$instance = $this;
+            CoreX::$instance = &$this;
             if ($baseConfigChildInstanceOrLauncherFolderPath == null) {
                 throw new \Exception('CoreX first parameter must be either a string containing the launcher ' .
                     'folder path or an instantiated BaseConfig child class. Example: new \ExEngine\CoreX(__DIR__);');
