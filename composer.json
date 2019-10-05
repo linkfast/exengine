@@ -18,6 +18,9 @@
         "source": "https://gitlab.com/linkfast-oss/exengine",
         "docs": "https://gitlab.com/linkfast-oss/exengine/wikis/home"
     },
+    "suggest": {
+        "linkfast-oss/eedbm": "Lightweight database manager and ORM for PHP that uses PDO to interact with native DB connections."
+    },
     "require": {
         "php": ">=5.6.0",
         "ext-json": "*"
