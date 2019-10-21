@@ -501,14 +501,13 @@ namespace ExEngine {
          */
         private function processArguments()
         {
-
             $start = time();
-            $reqUri = $_SERVER['REQUEST_URI'];
+            //$reqUri = $_SERVER['REQUEST_URI'];
             $httpCode = 200;
             $method = $_SERVER['REQUEST_METHOD'];
             //error_log('method: ' . $method);
-
-            preg_match("/(?:\.php\/)(.*?)(?:\?|$)/", $reqUri, $matches, PREG_OFFSET_CAPTURE);
+            preg_match("/(?:\.php\/)(.*?)(?:\?|$)/", $_SERVER['REQUEST_URI'],
+                $matches, PREG_OFFSET_CAPTURE);
             //print_r($matches);
             if (count($matches) > 1) {
                 $access = explode('/', $matches[1][0]);
@@ -614,8 +613,6 @@ namespace ExEngine {
                     $data = $data->expose();
                 }
                 $end = time();
-
-
 
                 if (isset($data)) {
                     if (is_array($data)) {
