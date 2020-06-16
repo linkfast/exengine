@@ -7,8 +7,8 @@
  * to provide security to your application, like session handling, tokens, encryption, etc.
  *
  * Filters differ from the Configuration instance in that Filters have access to fully-initialized ExEngine's CoreX,
- * that means that if you have configured a database, imported libs in Config or Launcher can be used from here and
- * excecution just before the controller's method requested, not in very early time.
+ * that means that if you have configured a host_init, imported libs in Config or Launcher can be used from here and
+ * execute just before the controller's method requested, not in very early time.
  *
  * To stop any execution you can throw a 'ResponseException'.
  *

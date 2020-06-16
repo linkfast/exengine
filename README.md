@@ -1,9 +1,9 @@
-# ExEngine Microframework
+ExEngine is a ultra lightweight micro-services framework for PHP 5.6+.
 
 ## Quick start
 
 1. Install using `composer` or 
-[download a release](https://gitlab.com/linkfast-oss/exengine/releases).
+[download a release](https://gitlab.com/linkfast-oss/exengine/-/releases).
 
     ```
     composer install linkfast-oss/exengine
@@ -11,7 +11,8 @@
 
 2. Create an instance launcher
 
-    Create an `index.php` file in the root of the folder exposed to the HTTP server, and include there `vendor.php` if using `composer` or the `CoreX.php` file.
+    Create an `index.php` file in the root of the folder exposed to the HTTP server, 
+    and include there `vendor.php` if using `composer` or the `exengine.php` file.
 
     ```php
     <?php
@@ -24,7 +25,8 @@
     
     You can create a custom `config` class with settings for database connection, etc.
 
-3. Create a folder called `._` relative to `index.php`. Inside of this new folder, create a file called `Test.php` with the following contents:
+3. Create a folder called `._` relative to `index.php`. Inside of this new folder, 
+create a file called `Test.php` with the following contents:
 
     ```php
     <?php
@@ -101,8 +103,9 @@ To get the previous response you should write the following function:
 
 ## Documentation
 
-Check out some [examples here](https://gitlab.com/linkfast-oss/exengine/tree/master/examples) and
- a detailed documentation in our [wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
+For further details about technology, plugins and how to use advanced features, 
+check out some [examples here](https://gitlab.com/linkfast-oss/exengine/tree/master/examples) and our 
+[wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
 
 ## Issues
 
@@ -113,8 +116,8 @@ Please leave an issue to our GitLab.com project using this [link](https://gitlab
 ```
 The MIT License (MIT)
 
-Copyright (c) 2018, 2019 LINKFAST S.A. (http://linkfast.io)
-Copyright (c) 2018, 2019 Giancarlo A. Chiappe Aguilar (gchiappe@linkfast.io)
+Copyright (c) 2018-2020 LinkFast S.A. (http://linkfast.io)
+Copyright (c) 2018-2020 Giancarlo A. Chiappe Aguilar (gchiappe@linkfast.io)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

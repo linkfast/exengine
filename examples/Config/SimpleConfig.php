@@ -6,19 +6,20 @@
  * wiki for more information of configuring ExEngine:
  * https://gitlab.com/linkfast-oss/exengine/wikis/Configuration
  *
- * Last updated: 30 Apr 2019
+ * Last updated: 15 Jun 2020
  */
 class Config extends ExEngine\BaseConfig
 {
     // Here you can override the defaults, check docs for all names.
 //    protected $usePrettyPrint = true;
 //    protected $showStackTrace = false;
+//    protected $defaultStaticAppStart = 'index.html';
 
     // Please note that you can´t use ExEngine instance in an overridden constructor, this code runs very,
     // very early (even before ExEngine is initiated).
 //    public function __construct($launcherFolderPath)
 //    {
-//        // You can set some very early code here, like session_start() for example.
+//        // You can set some very early code here.
 //        // code...
 //        // code...
 //        // more code...
@@ -27,7 +28,7 @@ class Config extends ExEngine\BaseConfig
 //        parent::__construct($launcherFolderPath);
 //    }
 
-    // Set your database connection information here.
+    // Set your host_init connection information here.
     // ExEngine has defaults for RedBeanPHP (SQLite testing) and POMM (exactly as it explains the Quick Pomm2 Setup
     // Guide), if using alternate configurations (RedBeanPHP:MySQL/PostgreSQL/etc or custom POMM settings), you can
     // override here.

@@ -1,10 +1,10 @@
 <?php
 /**
- * This example uses the RedBeanPHP ORM to retrieve and insert data into a database.
+ * This example uses the RedBeanPHP ORM to retrieve and insert data into a host_init.
  *
  * RedBeanPHP use is not mandatory, you can use any ORM or manual connection.
  *
- * For more information about database initializing in ExEngine check the following docs:
+ * For more information about host_init initializing in ExEngine check the following docs:
  * https://gitlab.com/linkfast-oss/exengine/wikis/config#database
  *
  * Last updated: 30 Apr 2019

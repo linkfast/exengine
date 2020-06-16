@@ -118,17 +118,19 @@ namespace ExEngine {
     abstract class BaseConfig
     {
         /* config default values */
-        protected $controllersLocation = "._";
+        protected $controllersLocation = 'App';
         protected $usePrettyPrint = true;
-        protected $showVersionInfo = "MINIMAL";
+        protected $showVersionInfo = 'MINIMAL';
         protected $suppressNulls = true;
         protected $showStackTrace = true;
         protected $showHeaderBanner = true;
         protected $dbConnectionAuto = false;
-        protected $launcherFolderPath = "";
+        protected $launcherFolderPath = '';
         protected $filters = [];
         protected $production = false;
         protected $forceAutoDbInit = false;
+        protected $defaultControllerFunction = '';
+        protected $defaultStaticAppStart = '';
         /* getters */
         /**
          * True if production optimizations are enabled. Please test your app in development mode first, production
@@ -226,6 +228,20 @@ namespace ExEngine {
         {
             return $this->dbConnectionAuto;
         }
+        /**
+         * @return string
+         */
+        public function getDefaultControllerFunction()
+        {
+            return $this->defaultControllerFunction;
+        }
+        /**
+         * @return string
+         */
+        public function getDefaultStaticAppStart()
+        {
+            return $this->defaultStaticAppStart;
+        }
         /* non overridable methods */
         final public function registerFilter(Filter $filter) {
             if (!$this->isProduction()) {
@@ -250,9 +266,9 @@ namespace ExEngine {
         }
         /* default overridables */
         /**
-         * Default overridable method for defining a database connection. Do not call parent::dbInit();
+         * Default overridable method for defining a host_init connection. Do not call parent::dbInit();
          *
-         * Important: Automatic detection and initialization of supported database managers is disabled by default
+         * Important: Automatic detection and initialization of supported host_init managers is disabled by default
          * in production mode. You can force the execution in production mode setting $this->forceAutoDbInit to true.
          *
          * @throws ResponseException
@@ -513,8 +529,9 @@ namespace ExEngine {
                 $access = explode('/', $matches[1][0]);
 
                 if (strlen($access[0]) == 0) {
-                    // if the controller/folder name is empty
-                    throw new ResponseException("Not found.", 404);
+                    // if the controller/folder name is empty, redirect to empty uri handler.
+                    header('Location: ' . substr($_SERVER['REQUEST_URI'], 0, strlen($_SERVER['REQUEST_URI'])-1));
+                    exit();
                 }
 
                 $className = "";
@@ -567,7 +584,7 @@ namespace ExEngine {
 
                 $isRestController = false;
                 if (isset($classObj) && $classObj instanceof Rest) {
-                    // connect to database if autoconnection is enabled
+                    // connect to host_init if autoconnection is enabled
                     if ($this->getConfig()->isDbConnectionAuto()) {
                         $this->getConfig()->dbInit();
                     }
@@ -645,7 +662,13 @@ namespace ExEngine {
                 }
 
             } else {
-                throw new ResponseException("Not found.", 404);
+                if (strlen($this->config->getDefaultStaticAppStart()) > 0) {
+                    header('Location: ' . $this->config->getDefaultStaticAppStart());
+                } else if (strlen($this->config->getDefaultControllerFunction()) > 0) {
+                    //print basename($_SERVER["SCRIPT_FILENAME"]);
+                    header('Location: ' . basename($_SERVER["SCRIPT_FILENAME"]) . '/' . $this->config->getDefaultControllerFunction());
+                } else
+                    throw new ResponseException("Not found (No parameters|No default serving).", 404);
             }
         }
 
@@ -673,6 +696,10 @@ namespace ExEngine {
                     throw new \Exception("If default config is being used, you must pass the launcher folder path. Example: new \ExEngine\CoreX(__DIR__);");
                 }
             }
+            if (strlen($this->config->getDefaultControllerFunction()) > 0 &&
+                strlen($this->config->getDefaultStaticAppStart()) > 0) {
+                throw new \Exception("Default serving mode must be set to Static App bootstrap or Controller Function but not both at the same time.");
+            }
             if ($this->config->isShowHeaderBanner()) {
                 if (!$this->config->isProduction()) {
                     header("Y-Powered-By: ExEngine - Development Mode");
@@ -687,7 +714,6 @@ namespace ExEngine {
                     throw new \Exception("Launcher folder path is invalid or does not exists. Please use PHP's constant `__DIR__` from the instance launcher.");
                 }
             }
-
             try {
                 print $this->processArguments();
             } catch (\Throwable $exception) {

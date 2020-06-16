@@ -40,7 +40,7 @@ class Test {
         return "Hello $arg1";
     }
 
-    // This function will load a database object using RedBean ORM, Rest controllers are prefered for data management but you
+    // This function will load a host_init object using RedBean ORM, Rest controllers are prefered for data management but you
     // can do this if you want or need.
     function pruebaget() {
         // you can access the Config object anytime using this shortcut: ee()->getConfig().
