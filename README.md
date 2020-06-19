@@ -101,11 +101,14 @@ To get the previous response you should write the following function:
     }
 ```
 
+## Examples
+
+Checkout the quick-start examples, maybe is all you need. [Click here for examples.](https://gitlab.com/linkfast-oss/exengine/-/tree/master/examples)
+
 ## Documentation
 
 For further details about technology, plugins and how to use advanced features, 
-check out some [examples here](https://gitlab.com/linkfast-oss/exengine/tree/master/examples) and our 
-[wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
+check out our [wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
 
 ## Issues
 

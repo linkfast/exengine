@@ -2,7 +2,7 @@
 /**
  * ExEngine Instance Launcher Example
  *
- * Last updated: 30 Apr 2019
+ * Last updated: 19 Jun 2020
  */
 
 // Install exengine.php file into your libs folder and include it, here, for example, I'm loading the core
