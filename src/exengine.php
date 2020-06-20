@@ -582,7 +582,6 @@ namespace ExEngine {
                 if (count($filter->getSkippedMethods()) > 0 &&
                     in_array($controllerMeta->getMethodName(), $filter->getSkippedMethods())) {
                     continue;
-
                 }
                 $filterReturnData = $filter->responseFilter($controllerMeta, $rawControllerResponse);
                 if ($filterReturnData != null) {
