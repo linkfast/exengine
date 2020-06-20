@@ -1,9 +1,8 @@
 <?php
 /* PHP Version Check */
-
 namespace {
     if (version_compare(PHP_VERSION, '5.6.0', '<')) {
-        print '<h1>ExEngine</h1><p>ExEngine requires PHP 5.6 or higher, please update your installation.</p>';
+        print 'ExEngine requires PHP 5.6 or higher, please update your installation.';
         exit();
     }
 }
@@ -38,7 +37,7 @@ namespace ExEngine {
     /**
      * Class DataClass
      * This class is supposed to be used as a parent of any object returning function.
-     * ExEngine Core will automatically parse the properties as a json object.
+     * ExEngine CoreX will automatically parse the properties as a json object.
      * Available modifiers:
      *  supressNulls: if true, all non-initialized or null properties will be stripped out.
      *      Can be set globally in `BaseConfig::supressNulls` or in `$this->dcConfiguration->supressNulls`.
@@ -249,12 +248,6 @@ namespace ExEngine {
                     throw new ResponseException("Invalid filter is trying to be registered in chain. Filters must
                     be an instance of Filter interface.", 500);
                 }
-                $class = new ReflectionClass($filter);
-                $method = $class->getMethod("doFilter");
-                if ($method->class != get_class($filter)) {
-                    throw new ResponseException("Invalid filter is trying to be registered in chain. Filters must
-                    implement the 'doFilter' method.", 500);
-                }
                 foreach ($this->filters as $registeredFilter) {
                     if (get_class($registeredFilter) == get_class($filter)) {
                         CoreX::addDevelopmentMessage(['WARNING' => 'Filter class '.get_class($registeredFilter).' is 
@@ -385,30 +378,40 @@ namespace ExEngine {
      * filter system, just as for Filter and RESTController classes.
      * @package ExEngine
      */
-    class MethodMeta {
-        private $className = '';
+    final class ControllerMethodMeta {
+        private $controllerName = '';
         private $methodName = '';
         private $arguments = [];
 
         /**
          * MethodMeta constructor.
-         * @param string $className
+         * @param string $controllerName
          * @param string $methodName
          * @param array $arguments
          */
-        public function __construct($className, $methodName, array $arguments)
+        public function __construct($controllerName, $methodName, array $arguments)
         {
-            $this->className = $className;
+            $this->controllerName = $controllerName;
             $this->methodName = $methodName;
             $this->arguments = $arguments;
+        }
+
+        public function link($method, ...$arguments) {
+            $methodArguments = '';
+            if (count($arguments) > 0) {
+                foreach ($arguments as $arg) {
+                    $methodArguments .= '/' . $arg;
+                }
+            }
+            return $_SERVER['SCRIPT_NAME'] . '/' . $this->controllerName . '/' . $method . $methodArguments;
         }
 
         /**
          * @return string
          */
-        public function getClassName()
+        public function getControllerName()
         {
-            return $this->className;
+            return $this->controllerName;
         }
 
         /**
@@ -432,12 +435,50 @@ namespace ExEngine {
     }
 
     abstract class Filter {
-        abstract function doFilter(MethodMeta $controllerMeta, $filtersData = null);
+        protected $skippedControllers = [];
+        protected $skippedMethods = [];
+        protected $allowedControllers = [];
+        protected $allowedMethods = [];
+        /**
+         * @return array
+         */
+        public final function getSkippedControllers()
+        {
+            return $this->skippedControllers;
+        }
+
+        /**
+         * @return array
+         */
+        public final function getSkippedMethods()
+        {
+            return $this->skippedMethods;
+        }
+
+        /**
+         * @return array
+         */
+        public final function getAllowedControllers()
+        {
+            return $this->allowedControllers;
+        }
+
+        /**
+         * @return array
+         */
+        public final function getAllowedMethods()
+        {
+            return $this->allowedMethods;
+        }
+        function requestFilter(ControllerMethodMeta $controllerMeta, array $filtersData) {}
+        function responseFilter(ControllerMethodMeta $controllerMeta, $rawControllerResponse) {}
         final public function __construct() {}
     }
 
-    class CoreX
+    final class CoreX
     {
+        // Static part of CoreX
+
         /**
          * This static variable contains the Core X instance that will be accessed globally.
          * @var CoreX
@@ -452,7 +493,6 @@ namespace ExEngine {
         public static function addDevelopmentMessage($message) {
             CoreX::$developmentMessages[] = $message;
         }
-
         /**
          * @return CoreX
          */
@@ -461,8 +501,9 @@ namespace ExEngine {
             return self::$instance;
         }
 
-        private $config = null;
+        // Non-static part of CoreX
 
+        private $config = null;
         /**
          * @return BaseConfig
          */
@@ -470,7 +511,6 @@ namespace ExEngine {
         {
             return $this->config;
         }
-
         private function usePrettyPrint()
         {
             if ($this->getConfig()->isUsePrettyPrint()) {
@@ -478,7 +518,6 @@ namespace ExEngine {
             }
             return null;
         }
-
         /**
          * @param string $ControllerFilePath
          * @return string
@@ -487,7 +526,6 @@ namespace ExEngine {
         {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFilePath . '.php';
         }
-
         /**
          * @param string $ControllerFolder
          * @return string
@@ -496,19 +534,72 @@ namespace ExEngine {
         {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFolder;
         }
-
+        // Filter Functions
         private $filterData = [];
-
-        public function getFilterData() {
+        public function filtersData() {
             return $this->filterData;
         }
-
-        private function processFilters(MethodMeta $controllerMeta) {
+        private function processRequestFilters(ControllerMethodMeta $controllerMeta) {
             foreach ($this->getConfig()->getFilters() as $filter) {
-                $this->filterData[get_class($filter)] = $filter->doFilter($controllerMeta, $this->filterData);
+                if (count($filter->getAllowedControllers()) > 0 &&
+                    !in_array($controllerMeta->getControllerName(), $filter->getAllowedControllers())) {
+                        continue;
+                }
+                if (count($filter->getAllowedMethods()) > 0 &&
+                    !in_array($controllerMeta->getMethodName(), $filter->getAllowedMethods())) {
+                        continue;
+
+                }
+                if (count($filter->getSkippedControllers()) > 0 &&
+                    in_array($controllerMeta->getControllerName(), $filter->getSkippedControllers())) {
+                        continue;
+                }
+                if (count($filter->getSkippedMethods()) > 0 &&
+                    in_array($controllerMeta->getMethodName(), $filter->getSkippedMethods())) {
+                        continue;
+
+                }
+                $filterReturnData = $filter->requestFilter($controllerMeta, $this->filterData);
+                if ($filterReturnData != null)
+                    $this->filterData[get_class($filter)] = $filterReturnData;
             }
         }
+        private function processResponseFilters(ControllerMethodMeta $controllerMeta, $rawControllerResponse) {
+            foreach ($this->getConfig()->getFilters() as $filter) {
+                if (count($filter->getAllowedControllers()) > 0 &&
+                    !in_array($controllerMeta->getControllerName(), $filter->getAllowedControllers())) {
+                    continue;
+                }
+                if (count($filter->getAllowedMethods()) > 0 &&
+                    !in_array($controllerMeta->getMethodName(), $filter->getAllowedMethods())) {
+                    continue;
 
+                }
+                if (count($filter->getSkippedControllers()) > 0 &&
+                    in_array($controllerMeta->getControllerName(), $filter->getSkippedControllers())) {
+                    continue;
+                }
+                if (count($filter->getSkippedMethods()) > 0 &&
+                    in_array($controllerMeta->getMethodName(), $filter->getSkippedMethods())) {
+                    continue;
+
+                }
+                $filterReturnData = $filter->responseFilter($controllerMeta, $rawControllerResponse);
+                if ($filterReturnData != null) {
+                    $rawControllerResponse = $filter->responseFilter($controllerMeta, $rawControllerResponse);
+                }
+            }
+            return $rawControllerResponse;
+        }
+        private $currentControllerMeta = null;
+        /***
+         * This will expose the current controller metadata. Call it using ee()->meta();
+         * @return ControllerMethodMeta
+         */
+        public function meta()
+        {
+            return $this->currentControllerMeta;
+        }
         /**
          * Url query parser and executor.
          * @return string
@@ -581,22 +672,24 @@ namespace ExEngine {
                     // if the controller/folder name is not defined correctly
                     throw new ResponseException("Not found.", 404);
                 }
-
                 $isRestController = false;
+                // Rest Controller Processing
                 if (isset($classObj) && $classObj instanceof Rest) {
-                    // connect to host_init if autoconnection is enabled
+                    // Auto-connect to database if is RestController and auto-connection is enabled in config.
                     if ($this->getConfig()->isDbConnectionAuto()) {
                         $this->getConfig()->dbInit();
                     }
                     // if controller is Rest, execute directly depending on the method.
                     try {
                         // Extract Controller Meta
-                        $controllerMeta = new MethodMeta($className,
+                        $this->currentControllerMeta = new ControllerMethodMeta($className,
                             strtolower($_SERVER['REQUEST_METHOD']), $arguments);
                         // Process Filters
-                        $this->processFilters($controllerMeta);
+                        $this->processRequestFilters($this->currentControllerMeta);
                         // Execute Method
                         $data = $classObj->executeRest(array_slice($access, 1));
+                        // Process Response Filters
+                        $data = $this->processResponseFilters($this->currentControllerMeta, $data);
                     } catch (\Throwable $restException) {
                         if ($restException instanceof ResponseException) {
                             throw $restException;
@@ -605,15 +698,18 @@ namespace ExEngine {
                     }
                     $isRestController = true;
                 } else {
+                    // Non-rest Controller Processing
                     // if not, check if method is defined
                     if (isset($classObj) && method_exists($classObj, $method)) {
                         try {
                             // Extract Controller Meta
-                            $controllerMeta = new MethodMeta($className,$method, $arguments);
+                            $this->currentControllerMeta = new ControllerMethodMeta($className,$method, $arguments);
                             // Process Filters
-                            $this->processFilters($controllerMeta);
+                            $this->processRequestFilters($this->currentControllerMeta);
                             // Execute Method
                             $data = call_user_func_array([$classObj, $method], $arguments);
+                            // Process Response Filters
+                            $data = $this->processResponseFilters($this->currentControllerMeta, $data);
                         } catch (\Throwable $methodException) {
                             if ($methodException instanceof ResponseException) {
                                 throw $methodException;
@@ -625,12 +721,13 @@ namespace ExEngine {
                         throw new ResponseException("Not found.", 404);
                     }
                 }
-
+                // Process DataClass Object.
                 if (isset($data) && $data instanceof DataClass) {
                     $data = $data->expose();
                 }
                 $end = time();
-
+                // Controller Method execution finished.
+                // Finalize response processing
                 if (isset($data)) {
                     if (is_array($data)) {
                         if (!isset($data['_useStandardResponse'])) {
@@ -662,14 +759,49 @@ namespace ExEngine {
                 }
 
             } else {
-                if (strlen($this->config->getDefaultStaticAppStart()) > 0) {
-                    header('Location: ' . $this->config->getDefaultStaticAppStart());
-                } else if (strlen($this->config->getDefaultControllerFunction()) > 0) {
-                    //print basename($_SERVER["SCRIPT_FILENAME"]);
-                    header('Location: ' . basename($_SERVER["SCRIPT_FILENAME"]) . '/' . $this->config->getDefaultControllerFunction());
-                } else
-                    throw new ResponseException("Not found (No parameters|No default serving).", 404);
+                $this->redirectToDefault();
             }
+            return null;
+        }
+
+        /***
+         * Redirects to a different controller's method.
+         * @param string $controller
+         * @param string $method
+         * @param mixed ...$arguments
+         */
+        function redirect($controller, $method, ...$arguments) {
+            header('Location: ' . $this->link($controller, $method, ...$arguments));
+        }
+
+        /***
+         * Redirects to the default (if set) if not, will throw an exception.
+         * @throws ResponseException
+         */
+        function redirectToDefault() {
+            if (strlen($this->config->getDefaultStaticAppStart()) > 0) {
+                header('Location: ' . $this->config->getDefaultStaticAppStart());
+            } else if (strlen($this->config->getDefaultControllerFunction()) > 0) {
+                header('Location: ' . $_SERVER['SCRIPT_NAME'] . '/' . $this->config->getDefaultControllerFunction());
+            } else
+                throw new ResponseException("Not found (No parameters|No default serving).", 404);
+        }
+
+        /**
+         * Returns the root relative url to the defined controller's method.
+         * @param $controller
+         * @param $method
+         * @param mixed ...$arguments
+         * @return string
+         */
+        function link($controller, $method, ...$arguments) {
+            $methodArguments = '';
+            if (count($arguments) > 0) {
+                foreach ($arguments as $arg) {
+                    $methodArguments .= '/' . $arg;
+                }
+            }
+            return $_SERVER['SCRIPT_NAME'] . '/' . $controller . '/' . $method . $methodArguments;
         }
 
         /**

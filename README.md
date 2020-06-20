@@ -1,4 +1,4 @@
-ExEngine is a ultra lightweight micro-services framework for PHP 5.6+.
+ExEngine is an ultra lightweight micro-services framework for PHP 5.6+.
 
 ## Quick start
 
