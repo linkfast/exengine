@@ -15,11 +15,23 @@
  * To register a filter add it to your Config's __construct override like this:
  * $this->registerFilter(new FilterExample());
  *
- * Last updated: 19 Jun 2020
+ * Also you can use dependency injection here.
+ *
+ * Last updated: 7 Jul 2020
  */
 
-class FilterExample extends \ExEngine\Filter {
-    function requestFilter(\ExEngine\ControllerMethodMeta $methodMeta, array $filtersData) {
+class FilterExample extends \ExEngine\Filter
+{
+
+    private $auth;
+
+    public function __construct(MyAuthenticationService $myAuthenticationService)
+    {
+        $this->auth = $myAuthenticationService;
+    }
+
+    function requestFilter(\ExEngine\ControllerMethodMeta $methodMeta, array $filtersData)
+    {
         // Exclude some methods from this filter.
         switch ($methodMeta->getControllerName()) {
             case 'ExampleController':
@@ -45,7 +57,9 @@ class FilterExample extends \ExEngine\Filter {
         // Following filters in the chain can access this thru the $filtersData parameter.
         // Remember that ee()->filtersData() is only available when all filters are executed.
         return [
-          "Some" => "Data"
+            "Some" => "Data",
+            // Executing a service's function.
+            "ServiceData" => $this->auth->test()
         ];
         // returning data is not required. This can be a void function.
     }

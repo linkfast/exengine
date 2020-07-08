@@ -1,5 +1,6 @@
 <?php
 /* PHP Version Check */
+
 namespace {
     if (version_compare(PHP_VERSION, '5.6.0', '<')) {
         print 'ExEngine requires PHP 5.6 or higher, please update your installation.';
@@ -9,6 +10,7 @@ namespace {
 /**
  * Framework namespace.
  */
+
 namespace ExEngine {
 
     use Throwable;
@@ -31,6 +33,46 @@ namespace ExEngine {
             } else {
                 throw new ResponseException("REST Method (" . $request_method . ") is not defined.", 404);
             }
+        }
+    }
+
+    class Body
+    {
+        private $rawBody;
+
+        public function __construct($rawBody)
+        {
+            $this->rawBody = $rawBody;
+        }
+
+        function raw()
+        {
+            return $this->rawBody;
+        }
+
+        function array()
+        {
+            return json_decode($this->rawBody, true);
+        }
+    }
+
+    /**
+     * Class Request
+     * This class can be used as argument of a controller constructor for dependency injection.
+     * @package ExEngine
+     */
+    class Request
+    {
+        private $body;
+
+        public function __construct()
+        {
+            $this->body = new Body(file_get_contents("php://input"));
+        }
+
+        function getBody()
+        {
+            return $this->body;
         }
     }
 
@@ -126,6 +168,7 @@ namespace ExEngine {
         protected $dbConnectionAuto = false;
         protected $launcherFolderPath = '';
         protected $filters = [];
+        protected $services = [];
         protected $production = false;
         protected $forceAutoDbInit = false;
         protected $defaultControllerFunction = '';
@@ -149,7 +192,7 @@ namespace ExEngine {
         }
         /**
          * Returns an array with the filters to be chained.
-         * @return Filter[]
+         * @return array
          */
         public function getFilters()
         {
@@ -163,7 +206,6 @@ namespace ExEngine {
         {
             return $this->launcherFolderPath;
         }
-
         /**
          * True if JSON output null suppression is enabled.
          * @return bool
@@ -172,7 +214,6 @@ namespace ExEngine {
         {
             return $this->suppressNulls;
         }
-
         /**
          * Returns the controller's folder.
          * @return string
@@ -181,7 +222,6 @@ namespace ExEngine {
         {
             return $this->controllersLocation;
         }
-
         /**
          * Returns true if pretty JSON printing is enabled.
          * @return bool
@@ -190,7 +230,6 @@ namespace ExEngine {
         {
             return $this->usePrettyPrint;
         }
-
         /**
          * @return string
          */
@@ -198,7 +237,6 @@ namespace ExEngine {
         {
             return $this->showVersionInfo;
         }
-
         /**
          * @return mixed
          */
@@ -241,21 +279,51 @@ namespace ExEngine {
         {
             return $this->defaultStaticAppStart;
         }
+        /**
+         * @return array
+         */
+        public function getServices()
+        {
+            return $this->services;
+        }
+        // Setters
+        public function setFilterInstance($filterClass, Filter $filter) {
+            $this->filters[$filterClass] = $filter;
+        }
         /* non overridable methods */
-        final public function registerFilter(Filter $filter) {
-            if (!$this->isProduction()) {
-                if (!$filter instanceof Filter) {
-                    throw new ResponseException("Invalid filter is trying to be registered in chain. Filters must
-                    be an instance of Filter interface.", 500);
-                }
-                foreach ($this->filters as $registeredFilter) {
-                    if (get_class($registeredFilter) == get_class($filter)) {
-                        CoreX::addDevelopmentMessage(['WARNING' => 'Filter class '.get_class($registeredFilter).' is 
-                            registered twice, not an error, but maybe a typo or intentional?.']);
-                    }
-                }
+//        final public function registerFilter(Filter $filter)
+//        {
+//            if (!$this->isProduction()) {
+//                if (!$filter instanceof Filter) {
+//                    throw new ResponseException("Invalid filter is trying to be registered in chain. Filters must
+//                    be an instance of Filter interface.", 500);
+//                }
+//                foreach ($this->filters as $registeredFilter) {
+//                    if (get_class($registeredFilter) == get_class($filter)) {
+//                        CoreX::addDevelopmentMessage(['WARNING' => 'Filter class ' . get_class($registeredFilter) . ' is
+//                            registered twice, not an error, but maybe a typo or intentional?.']);
+//                    }
+//                }
+//            }
+//            $this->filters[] = $filter;
+//        }
+    final function registerFilter($filterClass) {
+        if (class_exists($filterClass)) {
+            $this->filters[$filterClass] = 0;
+        } else {
+            throw new ResponseException("Class '$filterClass' not available. Cannot register as filter.",
+                500);
+        }
+    }
+
+        final public function registerService($serviceClass, $singleton = false)
+        {
+            if (class_exists($serviceClass)) {
+                $this->services[$serviceClass] = $singleton;
+            } else {
+                throw new ResponseException("Class '$serviceClass' not available. Cannot register as service.",
+                    500);
             }
-            $this->filters[] = $filter;
         }
         /* default overridables */
         /**
@@ -378,7 +446,8 @@ namespace ExEngine {
      * filter system, just as for Filter and RESTController classes.
      * @package ExEngine
      */
-    final class ControllerMethodMeta {
+    final class ControllerMethodMeta
+    {
         private $controllerName = '';
         private $methodName = '';
         private $arguments = [];
@@ -396,7 +465,8 @@ namespace ExEngine {
             $this->arguments = $arguments;
         }
 
-        public function link($method, ...$arguments) {
+        public function link($method, ...$arguments)
+        {
             $methodArguments = '';
             if (count($arguments) > 0) {
                 foreach ($arguments as $arg) {
@@ -431,14 +501,15 @@ namespace ExEngine {
         }
 
 
-
     }
 
-    abstract class Filter {
+    abstract class Filter
+    {
         protected $skippedControllers = [];
         protected $skippedMethods = [];
         protected $allowedControllers = [];
         protected $allowedMethods = [];
+
         /**
          * @return array
          */
@@ -470,9 +541,14 @@ namespace ExEngine {
         {
             return $this->allowedMethods;
         }
-        function requestFilter(ControllerMethodMeta $controllerMeta, array $filtersData) {}
-        function responseFilter(ControllerMethodMeta $controllerMeta, $rawControllerResponse) {}
-        final public function __construct() {}
+
+        function requestFilter(ControllerMethodMeta $controllerMeta, array $filtersData)
+        {
+        }
+
+        function responseFilter(ControllerMethodMeta $controllerMeta, $rawControllerResponse)
+        {
+        }
     }
 
     final class CoreX
@@ -485,14 +561,17 @@ namespace ExEngine {
          */
         private static $instance = null;
         private static $developmentMessages = [];
+
         /**
          * Adds a message (can be any serializable object) to the DevelopmentMessages chain, only available
          * in development mode and with Standard responses.
          * @param string|mixed $message
          */
-        public static function addDevelopmentMessage($message) {
+        public static function addDevelopmentMessage($message)
+        {
             CoreX::$developmentMessages[] = $message;
         }
+
         /**
          * @return CoreX
          */
@@ -504,6 +583,7 @@ namespace ExEngine {
         // Non-static part of CoreX
 
         private $config = null;
+
         /**
          * @return BaseConfig
          */
@@ -511,6 +591,7 @@ namespace ExEngine {
         {
             return $this->config;
         }
+
         private function usePrettyPrint()
         {
             if ($this->getConfig()->isUsePrettyPrint()) {
@@ -518,6 +599,7 @@ namespace ExEngine {
             }
             return null;
         }
+
         /**
          * @param string $ControllerFilePath
          * @return string
@@ -526,6 +608,7 @@ namespace ExEngine {
         {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFilePath . '.php';
         }
+
         /**
          * @param string $ControllerFolder
          * @return string
@@ -534,29 +617,39 @@ namespace ExEngine {
         {
             return $this->getConfig()->getControllersLocation() . '/' . $ControllerFolder;
         }
+
         // Filter Functions
         private $filterData = [];
-        public function filtersData() {
+        public function filtersData()
+        {
             return $this->filterData;
         }
-        private function processRequestFilters(ControllerMethodMeta $controllerMeta) {
+        private $singletonServiceInstances = [];
+        private function instantiateFilters() {
+            foreach (array_keys($this->config->getFilters()) as $filterClass) {
+                $this->config->setFilterInstance($filterClass, $this->injectDependenciesAndInstance($filterClass));
+            }
+        }
+
+        private function processRequestFilters(ControllerMethodMeta $controllerMeta)
+        {
             foreach ($this->getConfig()->getFilters() as $filter) {
                 if (count($filter->getAllowedControllers()) > 0 &&
                     !in_array($controllerMeta->getControllerName(), $filter->getAllowedControllers())) {
-                        continue;
+                    continue;
                 }
                 if (count($filter->getAllowedMethods()) > 0 &&
                     !in_array($controllerMeta->getMethodName(), $filter->getAllowedMethods())) {
-                        continue;
+                    continue;
 
                 }
                 if (count($filter->getSkippedControllers()) > 0 &&
                     in_array($controllerMeta->getControllerName(), $filter->getSkippedControllers())) {
-                        continue;
+                    continue;
                 }
                 if (count($filter->getSkippedMethods()) > 0 &&
                     in_array($controllerMeta->getMethodName(), $filter->getSkippedMethods())) {
-                        continue;
+                    continue;
 
                 }
                 $filterReturnData = $filter->requestFilter($controllerMeta, $this->filterData);
@@ -564,7 +657,9 @@ namespace ExEngine {
                     $this->filterData[get_class($filter)] = $filterReturnData;
             }
         }
-        private function processResponseFilters(ControllerMethodMeta $controllerMeta, $rawControllerResponse) {
+
+        private function processResponseFilters(ControllerMethodMeta $controllerMeta, $rawControllerResponse)
+        {
             foreach ($this->getConfig()->getFilters() as $filter) {
                 if (count($filter->getAllowedControllers()) > 0 &&
                     !in_array($controllerMeta->getControllerName(), $filter->getAllowedControllers())) {
@@ -590,7 +685,9 @@ namespace ExEngine {
             }
             return $rawControllerResponse;
         }
+
         private $currentControllerMeta = null;
+
         /***
          * This will expose the current controller metadata. Call it using ee()->meta();
          * @return ControllerMethodMeta
@@ -599,6 +696,7 @@ namespace ExEngine {
         {
             return $this->currentControllerMeta;
         }
+
         /**
          * Url query parser and executor.
          * @return string
@@ -620,7 +718,7 @@ namespace ExEngine {
 
                 if (strlen($access[0]) == 0) {
                     // if the controller/folder name is empty, redirect to empty uri handler.
-                    header('Location: ' . substr($_SERVER['REQUEST_URI'], 0, strlen($_SERVER['REQUEST_URI'])-1));
+                    header('Location: ' . substr($_SERVER['REQUEST_URI'], 0, strlen($_SERVER['REQUEST_URI']) - 1));
                     exit();
                 }
 
@@ -630,13 +728,12 @@ namespace ExEngine {
 
                 // Find and instantiate controller.
                 if (count($access) > 0) {
-                    $fpart = $access[0];
-                    $uc_fpart = ucfirst($fpart);
+                    $controllerFileName = $access[0];
+                    $className = ucfirst($controllerFileName);
                     // Check if controller exists and load it.
-                    if (file_exists($this->getController($fpart))) {
-                        include_once($this->getController($fpart));
-                        $classObj = new $uc_fpart();
-                        $className = $uc_fpart;
+                    if (file_exists($this->getController($controllerFileName))) {
+                        include_once($this->getController($controllerFileName));
+//                        $classObj = new $className();
                         // check if method is defined
                         if (count($access) > 1) {
                             $method = $access[1];
@@ -644,14 +741,14 @@ namespace ExEngine {
                         }
                     } else {
                         if (count($access) > 1) {
-                            $spart = $access[1];
-                            $uc_spart = ucfirst($spart);
+                            $folderName = $controllerFileName;
+                            $controllerFileName = $access[1];
+                            $className = ucfirst($controllerFileName);
                             // Check if is folder, and load if controller found.
-                            if (is_dir($this->getControllerFolder($fpart))) {
-                                if (file_exists($this->getControllerFolder($fpart) . '/' . $spart . '.php')) {
-                                    include_once($this->getControllerFolder($fpart) . '/' . $spart . '.php');
-                                    $classObj = new $uc_spart();
-                                    $className = $uc_spart;
+                            if (is_dir($this->getControllerFolder($folderName))) {
+                                if (file_exists($this->getControllerFolder($folderName) . '/' . $controllerFileName . '.php')) {
+                                    include_once($this->getControllerFolder($folderName) . '/' . $controllerFileName . '.php');
+//                                    $classObj = new $className();
                                     // check if method is defined
                                     if (count($access) > 2) {
                                         $method = $access[2];
@@ -671,6 +768,7 @@ namespace ExEngine {
                     // if the controller/folder name is not defined correctly
                     throw new ResponseException("Not found.", 404);
                 }
+                $classObj = $this->injectDependenciesAndInstance($className);
                 $isRestController = false;
                 // Rest Controller Processing
                 if (isset($classObj) && $classObj instanceof Rest) {
@@ -702,11 +800,18 @@ namespace ExEngine {
                     if (isset($classObj) && method_exists($classObj, $method)) {
                         try {
                             // Extract Controller Meta
-                            $this->currentControllerMeta = new ControllerMethodMeta($className,$method, $arguments);
+                            $this->currentControllerMeta = new ControllerMethodMeta($className, $method, $arguments);
                             // Process Filters
                             $this->processRequestFilters($this->currentControllerMeta);
-                            // Execute Method
+//                            if (isset($classObj) && $classObj instanceof RequestBody) {
+//                                // Execute Method injecting php://input as JSON and as the first argument.
+//                                $data = call_user_func_array([$classObj, $method],
+//                                    array_merge([json_decode(file_get_contents("php://input"), true)], $arguments)
+//                                );
+//                            } else {
+                            // Execute Raw Method
                             $data = call_user_func_array([$classObj, $method], $arguments);
+                            // }
                             // Process Response Filters
                             $data = $this->processResponseFilters($this->currentControllerMeta, $data);
                         } catch (\Throwable $methodException) {
@@ -716,7 +821,16 @@ namespace ExEngine {
                             throw new ResponseException($methodException->getMessage(), 500, $methodException);
                         }
                     } else {
-                        // if method does not exist, return not found
+                        // if method is empty, check for default method
+                        if (strlen($method) == 0 && method_exists($classObj, "__default")) {
+                            $defaultMethod = call_user_func_array([$classObj, "__default"], []);
+                            if (is_string($defaultMethod)) {
+                                if (method_exists($classObj, explode('/', $defaultMethod)[0])) {
+                                    // if default method exists, redirect
+                                    $this->redirect($className, $defaultMethod);
+                                }
+                            }
+                        }
                         throw new ResponseException("Not found.", 404);
                     }
                 }
@@ -764,20 +878,121 @@ namespace ExEngine {
         }
 
         /***
+         * This is the ExEngine Dependecy Injector
+         * Version: 1.0
+         * @param $className
+         * @return object
+         * @throws \ReflectionException, ExEngine\ResponseException
+         */
+        private function injectDependenciesAndInstance($className, $root = true, &$injectionStack = [])
+        {
+            $classReflection = new \ReflectionClass($className);
+            $classConstructor = $classReflection->getConstructor();
+            $constructorParams = [];
+            if ($root) {
+                $injectionStack = [];
+            }
+//            print_r([
+//                "startDependencyInjection",
+//                "current" => $className,
+//                "stack" => $injectionStack
+//            ]);
+            if (!is_null($classConstructor)) {
+//                print_r([
+//                   "parameters" => $classConstructor->getParameters()
+//                ]);
+                foreach ($classConstructor->getParameters() as $num => $parameter) {
+                    $parameterType = $parameter->getType();
+//                    print_r([
+//                        "parameter",
+//                        "parent" => $className,
+//                        "num" => $num,
+//                        "name" => $parameter->getName(),
+//                        "class" => $parameter->getClass()->getName(),
+//                        "type" => $parameter->getType()->getName(),
+//                        "stack" => $injectionStack
+//                    ]);
+                    if (!is_null($parameterType)) {
+                        // Inject Embeded Services
+                        switch ($parameterType->getName()) {
+                            case Request::class:
+                                $constructorParams[$num] = new Request();
+                                break;
+                            case CoreX::class:
+                                $constructorParams[$num] = self::getInstance();
+                                break;
+                            default:
+                                // Inject Embedded-based Objects
+                                if ($parameter->getClass()->getParentClass() &&
+                                    $parameter->getClass()->getParentClass()->getName() == BaseConfig::class) {
+                                    $constructorParams[$num] = $this->config;
+                                    break;
+                                }
+                                // Inject User Services
+                                if (in_array($parameterType->getName(), array_keys($this->getConfig()->getServices()), true)) {
+                                    $service = $parameterType->getName();
+                                    $singleton = $this->getConfig()->getServices()[$service];
+//                                    print_r([
+//                                        "user services",
+//                                        "className" => $className,
+//                                        "service" => $service,
+//                                        "singleton" => $singleton
+//                                    ]);
+                                    if ($className != $service) {
+                                        if (in_array($service, $injectionStack)) {
+                                            throw new ResponseException("Circular dependency injection detected " .
+                                                "when trying to instantiate '$className'. Stack: " . print_r($injectionStack, true), 500);
+                                        } else {
+                                            $injectionStack[] = $className;
+                                            if (!$singleton) {
+                                                $constructorParams[$num] =
+                                                    $this->injectDependenciesAndInstance($service, false, $injectionStack);
+                                            } else {
+                                                if (in_array($service, array_keys($this->singletonServiceInstances))) {
+                                                    $constructorParams[$num] = $this->singletonServiceInstances[$service];
+                                                } else {
+                                                    $this->singletonServiceInstances[$service] =
+                                                        $this->injectDependenciesAndInstance($service, true, $injectionStack);
+                                                    $constructorParams[$num] = $this->singletonServiceInstances[$service];
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        throw new ResponseException("Circular dependency injection detected " .
+                                            "when trying to instantiate '$className'.", 500);
+                                    }
+                                } else {
+                                    throw new ResponseException("Service '" . $parameterType->getName() . "' is not registered.", 500);
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+//            print_r([
+//                "dependency injection of '$className' finished."
+//            ]);
+            return $classReflection->newInstanceArgs($constructorParams);
+        }
+
+        /***
          * Redirects to a different controller's method.
          * @param string $controller
          * @param string $method
          * @param mixed ...$arguments
          */
-        function redirect($controller, $method, ...$arguments) {
+        function redirect($controller, $method, ...$arguments)
+        {
             header('Location: ' . $this->link($controller, $method, ...$arguments));
+            exit();
         }
 
         /***
          * Redirects to the default (if set) if not, will throw an exception.
          * @throws ResponseException
          */
-        function redirectToDefault() {
+        function redirectToDefault()
+        {
             if (strlen($this->config->getDefaultStaticAppStart()) > 0) {
                 header('Location: ' . $this->config->getDefaultStaticAppStart());
             } else if (strlen($this->config->getDefaultControllerFunction()) > 0) {
@@ -793,7 +1008,8 @@ namespace ExEngine {
          * @param mixed ...$arguments
          * @return string
          */
-        function link($controller, $method, ...$arguments) {
+        function link($controller, $method, ...$arguments)
+        {
             $methodArguments = '';
             if (count($arguments) > 0) {
                 foreach ($arguments as $arg) {
@@ -846,6 +1062,7 @@ namespace ExEngine {
                 }
             }
             try {
+                $this->instantiateFilters();
                 print $this->processArguments();
             } catch (\Throwable $exception) {
                 $trace = $this->getConfig()->isShowStackTrace() ? $exception->getTrace() : null;
