@@ -15,7 +15,7 @@ namespace ExEngine {
 
     use Throwable;
 
-    class Rest
+    class RestController
     {
         /**
          * @param array $argument_array
@@ -771,7 +771,7 @@ namespace ExEngine {
                 $classObj = $this->injectDependenciesAndInstance($className);
                 $isRestController = false;
                 // Rest Controller Processing
-                if (isset($classObj) && $classObj instanceof Rest) {
+                if (isset($classObj) && $classObj instanceof RestController) {
                     // Auto-connect to database if is RestController and auto-connection is enabled in config.
                     if ($this->getConfig()->isDbConnectionAuto()) {
                         $this->getConfig()->dbInit();

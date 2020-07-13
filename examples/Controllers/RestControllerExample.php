@@ -11,7 +11,7 @@
  */
 
 // In order to use REST methods, your controller class must extend the ExEngine\Rest class (defined in exengine.php).
-class RestExample extends ExEngine\Rest {
+class RestControllerExample extends ExEngine\RestController {
 
     var $bean = 'usuarios';
 

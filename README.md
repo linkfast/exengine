@@ -1,6 +1,18 @@
 ExEngine is an ultra lightweight micro-services framework for PHP 5.6+.
 
-## Quick start
+Documentation
+===
+
+[Checkout the Wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
+
+Examples
+===
+
+[Click here to browse examples](https://gitlab.com/linkfast-oss/exengine/-/tree/master/examples), also
+you can clone this repo and run them.
+
+Quick start
+===
 
 1. Install using `composer` or 
 [download a release](https://gitlab.com/linkfast-oss/exengine/-/releases).
@@ -23,7 +35,7 @@ ExEngine is an ultra lightweight micro-services framework for PHP 5.6+.
         new \ExEngine\CoreX(__DIR__);
     ```
     
-    You can create a custom `config` class with settings for database connection, etc.
+    You can create a custom `config` class with settings. 
 
 3. Create a folder called `._` relative to `index.php`. Inside of this new folder, 
 create a file called `Test.php` with the following contents:
@@ -42,13 +54,14 @@ create a file called `Test.php` with the following contents:
 
 5. Take a look to the `Examples` folder, profit.
 
-## Creating a REST controller
+Creating a REST controller
+===
 
 ExEngine allows easy REST controllers creation, you just have to extend a parent class and write the HTTP methods responses.
 
 ```php
 <?php
-    class RestExample extends \ExEngine\Rest {
+    class RestExample extends \ExEngine\RestController {
         function get($id) {
             return "Hello $id";
         }
@@ -72,7 +85,8 @@ POST `http://myserverhost/index.php/RestExample/`
 
 OPTIONS `http://myserverhost/index.php/RestExample/`
 
-## Writing a JSON api
+Writing a JSON API
+===
 
 ExEngine converts anything except `strings` functions results to JSON, encapsulating in an standard response.
 
@@ -101,20 +115,20 @@ To get the previous response you should write the following function:
     }
 ```
 
-## Examples
-
-Checkout the quick-start examples, maybe is all you need. [Click here for examples.](https://gitlab.com/linkfast-oss/exengine/-/tree/master/examples)
-
-## Documentation
-
-For further details about technology, plugins and how to use advanced features, 
-check out our [wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
-
-## Issues
+Issues
+===
 
 Please leave an issue to our GitLab.com project using this [link](https://gitlab.com/linkfast-oss/exengine/issues/new).
 
-## License
+About the GitHub repo
+===
+
+The GitHub repository is an always on-sync mirror of our GitLab repository. Feel free to use any of them as your source.
+
+Remember that documentation and issue tracker is hosted in our GitLab repo.
+
+License
+===
 
 ```
 The MIT License (MIT)
