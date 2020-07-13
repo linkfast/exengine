@@ -448,6 +448,7 @@ namespace ExEngine {
      */
     final class ControllerMethodMeta
     {
+        private $controllerLocation = '';
         private $controllerName = '';
         private $methodName = '';
         private $arguments = [];
@@ -458,8 +459,9 @@ namespace ExEngine {
          * @param string $methodName
          * @param array $arguments
          */
-        public function __construct($controllerName, $methodName, array $arguments)
+        public function __construct($controllerLocation, $controllerName, $methodName, array $arguments)
         {
+            $this->controllerLocation = $controllerLocation;
             $this->controllerName = $controllerName;
             $this->methodName = $methodName;
             $this->arguments = $arguments;
@@ -467,13 +469,7 @@ namespace ExEngine {
 
         public function link($method, ...$arguments)
         {
-            $methodArguments = '';
-            if (count($arguments) > 0) {
-                foreach ($arguments as $arg) {
-                    $methodArguments .= '/' . $arg;
-                }
-            }
-            return $_SERVER['SCRIPT_NAME'] . '/' . $this->controllerName . '/' . $method . $methodArguments;
+            return ee()->link(ee()->controller(), $method, ...$arguments);
         }
 
         /**
@@ -498,6 +494,14 @@ namespace ExEngine {
         public function getArguments()
         {
             return $this->arguments;
+        }
+
+        /**
+         * @return string
+         */
+        public function getControllerLocation()
+        {
+            return $this->controllerLocation;
         }
 
 
@@ -687,6 +691,7 @@ namespace ExEngine {
         }
 
         private $currentControllerMeta = null;
+        private $currentControllerInstance = null;
 
         /***
          * This will expose the current controller metadata. Call it using ee()->meta();
@@ -695,6 +700,14 @@ namespace ExEngine {
         public function meta()
         {
             return $this->currentControllerMeta;
+        }
+
+        /***
+         * This will expose the current controller instance. Call it using ee()->controller();
+         * @return object
+         */
+        public function controller() {
+            return $this->currentControllerInstance;
         }
 
         /**
@@ -724,6 +737,7 @@ namespace ExEngine {
 
                 $className = "";
                 $method = "";
+                $folderName = $this->getConfig()->getControllersLocation();
                 $arguments = [];
 
                 // Find and instantiate controller.
@@ -768,10 +782,10 @@ namespace ExEngine {
                     // if the controller/folder name is not defined correctly
                     throw new ResponseException("Not found.", 404);
                 }
-                $classObj = $this->injectDependenciesAndInstance($className);
+                $this->currentControllerInstance = $this->injectDependenciesAndInstance($className);
                 $isRestController = false;
                 // Rest Controller Processing
-                if (isset($classObj) && $classObj instanceof RestController) {
+                if (isset($this->currentControllerInstance) && $this->currentControllerInstance instanceof RestController) {
                     // Auto-connect to database if is RestController and auto-connection is enabled in config.
                     if ($this->getConfig()->isDbConnectionAuto()) {
                         $this->getConfig()->dbInit();
@@ -779,12 +793,12 @@ namespace ExEngine {
                     // if controller is Rest, execute directly depending on the method.
                     try {
                         // Extract Controller Meta
-                        $this->currentControllerMeta = new ControllerMethodMeta($className,
+                        $this->currentControllerMeta = new ControllerMethodMeta($folderName, $className,
                             strtolower($_SERVER['REQUEST_METHOD']), $arguments);
                         // Process Filters
                         $this->processRequestFilters($this->currentControllerMeta);
                         // Execute Method
-                        $data = $classObj->executeRest(array_slice($access, 1));
+                        $data = $this->currentControllerInstance->executeRest(array_slice($access, 1));
                         // Process Response Filters
                         $data = $this->processResponseFilters($this->currentControllerMeta, $data);
                     } catch (\Throwable $restException) {
@@ -797,10 +811,11 @@ namespace ExEngine {
                 } else {
                     // Non-rest Controller Processing
                     // if not, check if method is defined
-                    if (isset($classObj) && method_exists($classObj, $method)) {
+                    if (isset($this->currentControllerInstance) && method_exists($this->currentControllerInstance, $method)) {
                         try {
                             // Extract Controller Meta
-                            $this->currentControllerMeta = new ControllerMethodMeta($className, $method, $arguments);
+                            $this->currentControllerMeta = new ControllerMethodMeta($folderName,
+                                $className, $method, $arguments);
                             // Process Filters
                             $this->processRequestFilters($this->currentControllerMeta);
 //                            if (isset($classObj) && $classObj instanceof RequestBody) {
@@ -809,8 +824,10 @@ namespace ExEngine {
 //                                    array_merge([json_decode(file_get_contents("php://input"), true)], $arguments)
 //                                );
 //                            } else {
+//                            // Set Meta After Request Filters are processed.
+//                            $classObj->__meta = $this->currentControllerMeta;
                             // Execute Raw Method
-                            $data = call_user_func_array([$classObj, $method], $arguments);
+                            $data = call_user_func_array([$this->currentControllerInstance, $method], $arguments);
                             // }
                             // Process Response Filters
                             $data = $this->processResponseFilters($this->currentControllerMeta, $data);
@@ -822,10 +839,10 @@ namespace ExEngine {
                         }
                     } else {
                         // if method is empty, check for default method
-                        if (strlen($method) == 0 && method_exists($classObj, "__default")) {
-                            $defaultMethod = call_user_func_array([$classObj, "__default"], []);
+                        if (strlen($method) == 0 && method_exists($this->currentControllerInstance, "__default")) {
+                            $defaultMethod = call_user_func_array([$this->currentControllerInstance, "__default"], []);
                             if (is_string($defaultMethod)) {
-                                if (method_exists($classObj, explode('/', $defaultMethod)[0])) {
+                                if (method_exists($this->currentControllerInstance, explode('/', $defaultMethod)[0])) {
                                     // if default method exists, redirect
                                     $this->redirect($className, $defaultMethod);
                                 }
@@ -892,26 +909,9 @@ namespace ExEngine {
             if ($root) {
                 $injectionStack = [];
             }
-//            print_r([
-//                "startDependencyInjection",
-//                "current" => $className,
-//                "stack" => $injectionStack
-//            ]);
             if (!is_null($classConstructor)) {
-//                print_r([
-//                   "parameters" => $classConstructor->getParameters()
-//                ]);
                 foreach ($classConstructor->getParameters() as $num => $parameter) {
                     $parameterType = $parameter->getType();
-//                    print_r([
-//                        "parameter",
-//                        "parent" => $className,
-//                        "num" => $num,
-//                        "name" => $parameter->getName(),
-//                        "class" => $parameter->getClass()->getName(),
-//                        "type" => $parameter->getType()->getName(),
-//                        "stack" => $injectionStack
-//                    ]);
                     if (!is_null($parameterType)) {
                         // Inject Embeded Services
                         switch ($parameterType->getName()) {
@@ -932,12 +932,6 @@ namespace ExEngine {
                                 if (in_array($parameterType->getName(), array_keys($this->getConfig()->getServices()), true)) {
                                     $service = $parameterType->getName();
                                     $singleton = $this->getConfig()->getServices()[$service];
-//                                    print_r([
-//                                        "user services",
-//                                        "className" => $className,
-//                                        "service" => $service,
-//                                        "singleton" => $singleton
-//                                    ]);
                                     if ($className != $service) {
                                         if (in_array($service, $injectionStack)) {
                                             throw new ResponseException("Circular dependency injection detected " .
@@ -969,9 +963,6 @@ namespace ExEngine {
                     }
                 }
             }
-//            print_r([
-//                "dependency injection of '$className' finished."
-//            ]);
             return $classReflection->newInstanceArgs($constructorParams);
         }
 
@@ -1007,6 +998,7 @@ namespace ExEngine {
          * @param $method
          * @param mixed ...$arguments
          * @return string
+         * @throws ResponseException
          */
         function link($controller, $method, ...$arguments)
         {
@@ -1016,13 +1008,24 @@ namespace ExEngine {
                     $methodArguments .= '/' . $arg;
                 }
             }
-            return $_SERVER['SCRIPT_NAME'] . '/' . $controller . '/' . $method . $methodArguments;
+            if (is_string($controller))
+                return $_SERVER['SCRIPT_NAME'] . '/' . $controller . '/' . $method . $methodArguments;
+            elseif (is_object($controller) && $controller == $this->controller()) {
+                $base = $this->meta()->getControllerLocation();
+                $base = str_replace($this->getConfig()->getControllersLocation(), '', $base) . '/';
+                $controllerName = get_class($controller);
+                return $_SERVER['SCRIPT_NAME'] . $base . $controllerName . '/' . $method . $methodArguments;
+            } else {
+                throw new ResponseException(
+                    "Invalid argument for this method. Please provide a string or a controller ".
+                        "instance as argument.", 500);
+            }
         }
 
         /**
          * CoreX constructor.
          * @param BaseConfig|string|null $baseConfigChildInstanceOrLauncherFolderPath
-         * @throws Exception
+         * @throws \Exception
          */
         function __construct($baseConfigChildInstanceOrLauncherFolderPath = null)
         {

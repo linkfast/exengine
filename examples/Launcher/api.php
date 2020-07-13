@@ -23,4 +23,4 @@ include_once '../../src/exengine.php';
  * 
  * Alternate instantiation without config class: new \ExEngine\CoreX(__DIR__);
  */
-new \ExEngine\CoreX(new Config(__DIR__));
+new \ExEngine\CoreX(__DIR__);
