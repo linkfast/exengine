@@ -18,47 +18,45 @@ class Test {
     }
 
     // This function will return an object of the class defined on the top of this file.
-    function mydataclass() : User {
+    function mydataclass() {
         return new User();
     }
 
     // This function will return an array, all kind of arrays are converted to JSON string.
-    function other() : array {
+    function other() {
         return [
             "xArray" => "Hello"
         ];
     }
 
     // This function will return an string (safe-typed), strings are printed raw.
-    function stringtest() : string {
+    function stringtest() {
         return "<h1>Hello World</h1>";
     }
 
     // This function will return an string, strings are printed raw. Also this function requires an argument that must be passed
     // in the query string.
-    function prueba($arg1) {
+    function stringtest2($arg1) {
         return "Hello $arg1";
     }
 
     // This function will load a host_init object using RedBean ORM, Rest controllers are prefered for data management but you
     // can do this if you want or need.
-    function pruebaget() {
+    function testget() {
         // you can access the Config object anytime using this shortcut: ee()->getConfig().
         ee()->getConfig()->dbInit();
-
         $book = R::load('book', 4);
-
         return $book; // this returns an string.
     }
 
     // This function reads a POST argument.
-    function post1() {
+    function testpost1() {
         $nombre = $_POST['name'];
         return "My name is $nombre";
     }
 
     // This one also.
-    function post2() {
+    function testpost2() {
         $apellido = $_POST['last'];
         return "My last name is $apellido";
     }

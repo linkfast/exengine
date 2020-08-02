@@ -287,7 +287,7 @@ namespace ExEngine {
             return $this->services;
         }
         // Setters
-        public function setFilterInstance($filterClass, Filter $filter) {
+        public function setFilterInstance($filterClass, $filter) {
             $this->filters[$filterClass] = $filter;
         }
         /* non overridable methods */
@@ -319,7 +319,7 @@ namespace ExEngine {
         final public function registerService($serviceClass, $singleton = false)
         {
             if (class_exists($serviceClass)) {
-                $this->services[$serviceClass] = $singleton;
+                $this->services[$serviceClass] = ['singleton' => $singleton];
             } else {
                 throw new ResponseException("Class '$serviceClass' not available. Cannot register as service.",
                     500);
@@ -440,7 +440,7 @@ namespace ExEngine {
     }
 
     /**
-     * Class MethodMeta
+     * Class ControllerMethodMeta
      * This class represents the metadata of a controller method just before being executed.
      * Specially created for using with filters, this allows to have a good structure for using a framework level
      * filter system, just as for Filter and RESTController classes.
@@ -452,19 +452,32 @@ namespace ExEngine {
         private $controllerName = '';
         private $methodName = '';
         private $arguments = [];
+        private $excludedFilters = [];
+        private $allowedFilters = [];
 
         /**
-         * MethodMeta constructor.
+         * ControllerMethodMeta constructor.
+         * @param string $controllerLocation
          * @param string $controllerName
          * @param string $methodName
          * @param array $arguments
+         * @param array $excludedFilters
+         * @param array $allowedFilters
          */
-        public function __construct($controllerLocation, $controllerName, $methodName, array $arguments)
+        public function __construct(
+            $controllerLocation,
+            $controllerName,
+            $methodName,
+            array $arguments,
+            array $excludedFilters = [],
+            array $allowedFilters = [])
         {
             $this->controllerLocation = $controllerLocation;
             $this->controllerName = $controllerName;
             $this->methodName = $methodName;
             $this->arguments = $arguments;
+            $this->excludedFilters = $excludedFilters;
+            $this->allowedFilters = $allowedFilters;
         }
 
         public function link($method, ...$arguments)
@@ -504,54 +517,34 @@ namespace ExEngine {
             return $this->controllerLocation;
         }
 
+        /**
+         * @return array
+         */
+        public function getExcludedFilters()
+        {
+            return $this->excludedFilters;
+        }
+
+        /**
+         * @return array
+         */
+        public function getAllowedFilters()
+        {
+            return $this->allowedFilters;
+        }
+
+
 
     }
 
     abstract class Filter
     {
-        protected $skippedControllers = [];
-        protected $skippedMethods = [];
-        protected $allowedControllers = [];
-        protected $allowedMethods = [];
-
-        /**
-         * @return array
-         */
-        public final function getSkippedControllers()
-        {
-            return $this->skippedControllers;
-        }
-
-        /**
-         * @return array
-         */
-        public final function getSkippedMethods()
-        {
-            return $this->skippedMethods;
-        }
-
-        /**
-         * @return array
-         */
-        public final function getAllowedControllers()
-        {
-            return $this->allowedControllers;
-        }
-
-        /**
-         * @return array
-         */
-        public final function getAllowedMethods()
-        {
-            return $this->allowedMethods;
-        }
-
-        function requestFilter(ControllerMethodMeta $controllerMeta, array $filtersData)
-        {
-        }
+        function requestFilter(ControllerMethodMeta $controllerMeta, array &$filtersData)
+        {}
 
         function responseFilter(ControllerMethodMeta $controllerMeta, $rawControllerResponse)
         {
+            return $rawControllerResponse;
         }
     }
 
@@ -629,32 +622,25 @@ namespace ExEngine {
             return $this->filterData;
         }
         private $singletonServiceInstances = [];
+        /***
+         * @throws ResponseException
+         * @throws \ReflectionException
+         */
         private function instantiateFilters() {
             foreach (array_keys($this->config->getFilters()) as $filterClass) {
                 $this->config->setFilterInstance($filterClass, $this->injectDependenciesAndInstance($filterClass));
             }
         }
-
         private function processRequestFilters(ControllerMethodMeta $controllerMeta)
         {
             foreach ($this->getConfig()->getFilters() as $filter) {
-                if (count($filter->getAllowedControllers()) > 0 &&
-                    !in_array($controllerMeta->getControllerName(), $filter->getAllowedControllers())) {
-                    continue;
+                if (count($controllerMeta->getAllowedFilters()) > 0 &&
+                    !in_array(get_class($filter), $controllerMeta->getAllowedFilters())) {
+                        continue;
                 }
-                if (count($filter->getAllowedMethods()) > 0 &&
-                    !in_array($controllerMeta->getMethodName(), $filter->getAllowedMethods())) {
+                if (count($controllerMeta->getExcludedFilters()) > 0 &&
+                    in_array(get_class($filter), $controllerMeta->getExcludedFilters())) {
                     continue;
-
-                }
-                if (count($filter->getSkippedControllers()) > 0 &&
-                    in_array($controllerMeta->getControllerName(), $filter->getSkippedControllers())) {
-                    continue;
-                }
-                if (count($filter->getSkippedMethods()) > 0 &&
-                    in_array($controllerMeta->getMethodName(), $filter->getSkippedMethods())) {
-                    continue;
-
                 }
                 $filterReturnData = $filter->requestFilter($controllerMeta, $this->filterData);
                 if ($filterReturnData != null)
@@ -665,21 +651,12 @@ namespace ExEngine {
         private function processResponseFilters(ControllerMethodMeta $controllerMeta, $rawControllerResponse)
         {
             foreach ($this->getConfig()->getFilters() as $filter) {
-                if (count($filter->getAllowedControllers()) > 0 &&
-                    !in_array($controllerMeta->getControllerName(), $filter->getAllowedControllers())) {
+                if (count($controllerMeta->getAllowedFilters()) > 0 &&
+                    !in_array(get_class($filter), $controllerMeta->getAllowedFilters())) {
                     continue;
                 }
-                if (count($filter->getAllowedMethods()) > 0 &&
-                    !in_array($controllerMeta->getMethodName(), $filter->getAllowedMethods())) {
-                    continue;
-
-                }
-                if (count($filter->getSkippedControllers()) > 0 &&
-                    in_array($controllerMeta->getControllerName(), $filter->getSkippedControllers())) {
-                    continue;
-                }
-                if (count($filter->getSkippedMethods()) > 0 &&
-                    in_array($controllerMeta->getMethodName(), $filter->getSkippedMethods())) {
+                if (count($controllerMeta->getExcludedFilters()) > 0 &&
+                    in_array(get_class($filter), $controllerMeta->getExcludedFilters())) {
                     continue;
                 }
                 $filterReturnData = $filter->responseFilter($controllerMeta, $rawControllerResponse);
@@ -719,13 +696,9 @@ namespace ExEngine {
         private function processArguments()
         {
             $start = time();
-            //$reqUri = $_SERVER['REQUEST_URI'];
             $httpCode = 200;
-            $method = $_SERVER['REQUEST_METHOD'];
-            //error_log('method: ' . $method);
             preg_match("/(?:\.php\/)(.*?)(?:\?|$)/", $_SERVER['REQUEST_URI'],
                 $matches, PREG_OFFSET_CAPTURE);
-            //print_r($matches);
             if (count($matches) > 1) {
                 $access = explode('/', $matches[1][0]);
 
@@ -735,7 +708,6 @@ namespace ExEngine {
                     exit();
                 }
 
-                $className = "";
                 $method = "";
                 $folderName = $this->getConfig()->getControllersLocation();
                 $arguments = [];
@@ -784,6 +756,14 @@ namespace ExEngine {
                 }
                 $this->currentControllerInstance = $this->injectDependenciesAndInstance($className);
                 $isRestController = false;
+                $allowedFilters = [];
+                $ignoredFilters = [];
+                if (property_exists($this->currentControllerInstance, '__allowedFilters')) {
+                    $allowedFilters = $this->currentControllerInstance->__allowedFilters;
+                }
+                if (property_exists($this->currentControllerInstance, '__ignoredFilters')) {
+                    $ignoredFilters = $this->currentControllerInstance->__ignoredFilters;
+                }
                 // Rest Controller Processing
                 if (isset($this->currentControllerInstance) && $this->currentControllerInstance instanceof RestController) {
                     // Auto-connect to database if is RestController and auto-connection is enabled in config.
@@ -794,7 +774,7 @@ namespace ExEngine {
                     try {
                         // Extract Controller Meta
                         $this->currentControllerMeta = new ControllerMethodMeta($folderName, $className,
-                            strtolower($_SERVER['REQUEST_METHOD']), $arguments);
+                            strtolower($_SERVER['REQUEST_METHOD']), $arguments, $allowedFilters, $ignoredFilters);
                         // Process Filters
                         $this->processRequestFilters($this->currentControllerMeta);
                         // Execute Method
@@ -815,17 +795,9 @@ namespace ExEngine {
                         try {
                             // Extract Controller Meta
                             $this->currentControllerMeta = new ControllerMethodMeta($folderName,
-                                $className, $method, $arguments);
+                                $className, $method, $arguments, $allowedFilters, $ignoredFilters);
                             // Process Filters
                             $this->processRequestFilters($this->currentControllerMeta);
-//                            if (isset($classObj) && $classObj instanceof RequestBody) {
-//                                // Execute Method injecting php://input as JSON and as the first argument.
-//                                $data = call_user_func_array([$classObj, $method],
-//                                    array_merge([json_decode(file_get_contents("php://input"), true)], $arguments)
-//                                );
-//                            } else {
-//                            // Set Meta After Request Filters are processed.
-//                            $classObj->__meta = $this->currentControllerMeta;
                             // Execute Raw Method
                             $data = call_user_func_array([$this->currentControllerInstance, $method], $arguments);
                             // }
@@ -839,12 +811,12 @@ namespace ExEngine {
                         }
                     } else {
                         // if method is empty, check for default method
-                        if (strlen($method) == 0 && method_exists($this->currentControllerInstance, "__default")) {
-                            $defaultMethod = call_user_func_array([$this->currentControllerInstance, "__default"], []);
+                        if (strlen($method) == 0 && property_exists($this->currentControllerInstance, "__default")) {
+                            $defaultMethod = $this->currentControllerInstance->__default;
                             if (is_string($defaultMethod)) {
                                 if (method_exists($this->currentControllerInstance, explode('/', $defaultMethod)[0])) {
                                     // if default method exists, redirect
-                                    $this->redirect($className, $defaultMethod);
+                                    $this->redirect($this->currentControllerInstance, $defaultMethod);
                                 }
                             }
                         }
@@ -895,11 +867,14 @@ namespace ExEngine {
         }
 
         /***
-         * This is the ExEngine Dependecy Injector
+         * This is the ExEngine Dependency Injector
          * Version: 1.0
          * @param $className
+         * @param $root
+         * @param $injectionStack
          * @return object
-         * @throws \ReflectionException, ExEngine\ResponseException
+         * @throws \ReflectionException
+         * @throws ResponseException
          */
         private function injectDependenciesAndInstance($className, $root = true, &$injectionStack = [])
         {
@@ -913,7 +888,7 @@ namespace ExEngine {
                 foreach ($classConstructor->getParameters() as $num => $parameter) {
                     $parameterType = $parameter->getType();
                     if (!is_null($parameterType)) {
-                        // Inject Embeded Services
+                        // Inject Embedded Services
                         switch ($parameterType->getName()) {
                             case Request::class:
                                 $constructorParams[$num] = new Request();
@@ -931,7 +906,7 @@ namespace ExEngine {
                                 // Inject User Services
                                 if (in_array($parameterType->getName(), array_keys($this->getConfig()->getServices()), true)) {
                                     $service = $parameterType->getName();
-                                    $singleton = $this->getConfig()->getServices()[$service];
+                                    $singleton = $this->getConfig()->getServices()[$service]['singleton'];
                                     if ($className != $service) {
                                         if (in_array($service, $injectionStack)) {
                                             throw new ResponseException("Circular dependency injection detected " .
@@ -971,6 +946,7 @@ namespace ExEngine {
          * @param string $controller
          * @param string $method
          * @param mixed ...$arguments
+         * @throws ResponseException
          */
         function redirect($controller, $method, ...$arguments)
         {

@@ -30,7 +30,7 @@ class FilterExample extends \ExEngine\Filter
         $this->auth = $myAuthenticationService;
     }
 
-    function requestFilter(\ExEngine\ControllerMethodMeta $methodMeta, array $filtersData)
+    function requestFilter(\ExEngine\ControllerMethodMeta $methodMeta, array &$filtersData)
     {
         // Exclude some methods from this filter.
         switch ($methodMeta->getControllerName()) {
