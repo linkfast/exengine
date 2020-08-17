@@ -1,2 +1,2 @@
 #!/bin/bash
-php -S localhost:7171 -t $PWD
+php -S 0.0.0.0:7171 -t $PWD

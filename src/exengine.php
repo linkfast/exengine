@@ -156,6 +156,10 @@ namespace ExEngine {
         }
     }
 
+    interface Extension {
+        public static function validateConfiguration($configuration);
+    }
+
     abstract class BaseConfig
     {
         /* config default values */
@@ -169,6 +173,7 @@ namespace ExEngine {
         protected $launcherFolderPath = '';
         protected $filters = [];
         protected $services = [];
+        protected $extensions = [];
         protected $production = false;
         protected $forceAutoDbInit = false;
         protected $defaultControllerFunction = '';
@@ -312,6 +317,29 @@ namespace ExEngine {
             $this->filters[$filterClass] = 0;
         } else {
             throw new ResponseException("Class '$filterClass' not available. Cannot register as filter.",
+                500);
+        }
+    }
+
+    final public function enableExtension($extensionLoaderClass, $extensionConfig=null) {
+        if (class_exists($extensionLoaderClass)
+            && in_array(Extension::class, class_implements($extensionLoaderClass))) {
+            if ($extensionConfig == null)
+                $this->extensions[$extensionLoaderClass] = 0;
+            else {
+                // validate configuration
+                if (
+                    forward_static_call([$extensionLoaderClass, 'validateConfiguration'], $extensionConfig)
+                ) {
+                    $this->extensions[$extensionLoaderClass] = $extensionConfig;
+                } else {
+                    throw new ResponseException("Extension '$extensionLoaderClass' cannot be enabled. ".
+                        "Configuration is not valid.",
+                        500);
+                }
+            }
+        } else {
+            throw new ResponseException("Extension '$extensionLoaderClass' not available. Cannot enable.",
                 500);
         }
     }
@@ -548,9 +576,30 @@ namespace ExEngine {
         }
     }
 
+    class NullLogger {
+        final function debug(...$arg) {}
+        final function error(...$arg) {}
+        final function info(...$arg) {}
+    }
+
     final class CoreX
     {
         // Static part of CoreX
+
+        /***
+         * @param string $name
+         * @return Monolog\Logger|NullLogger
+         * @throws Exception
+         */
+        public static function getLogger($name='CoreX') {
+            if (defined("EXENGINE_LOG") || defined("EXENGINE_LOG_WEB")) {
+                $log = new \Monolog\Logger($name);
+                if (defined('EXENGINE\LOG_LOCATION')) {
+                    $log->pushHandler(new Monolog\Handler\StreamHandler(LOG_LOCATION, Monolog\Logger::WARNING));
+                }
+                return $log;
+            } else return new NullLogger();
+        }
 
         /**
          * This static variable contains the Core X instance that will be accessed globally.

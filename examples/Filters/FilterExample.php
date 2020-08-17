@@ -34,7 +34,7 @@ class FilterExample extends \ExEngine\Filter
     {
         // Exclude some methods from this filter.
         switch ($methodMeta->getControllerName()) {
-            case 'ExampleController':
+            case 'GraphQLController':
                 switch ($methodMeta->getMethodName()) {
                     case 'Login':
                     case 'Authenticate':
@@ -49,7 +49,7 @@ class FilterExample extends \ExEngine\Filter
             // You can stop all, or redirect.
             // throw new \ExEngine\ResponseException('Forbidden', 403);
             // redirect
-            ee()->redirect('ExampleController', 'NotAuthenticated', $methodMeta->getMethodName());
+            ee()->redirect('GraphQLController', 'NotAuthenticated', $methodMeta->getMethodName());
         }
         // You can return any kind of data, it will be stored in a key-value variable in the CoreX instance
         // where the key is a string representation of this class from the controller using
