@@ -18,7 +18,7 @@ Quick start
 [download a release](https://gitlab.com/linkfast-oss/exengine/-/releases).
 
     ```
-    composer install linkfast-oss/exengine
+    composer require linkfast/exengine
     ````
 
 2. Create an instance launcher
