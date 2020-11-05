@@ -3,19 +3,19 @@ ExEngine is an ultra lightweight micro-services framework for PHP 5.6+.
 Documentation
 ===
 
-[Checkout the Wiki](https://gitlab.com/linkfast-oss/exengine/wikis/home).
+[Checkout the Wiki](https://gitlab.com/linkfast/oss/exengine/wikis/home).
 
 Examples
 ===
 
-[Click here to browse examples](https://gitlab.com/linkfast-oss/exengine/-/tree/master/examples), also
+[Click here to browse examples](https://gitlab.com/linkfast/oss/exengine/-/tree/master/examples), also
 you can clone this repo and run them.
 
 Quick start
 ===
 
 1. Install using `composer` or 
-[download a release](https://gitlab.com/linkfast-oss/exengine/-/releases).
+[download a release](https://gitlab.com/linkfast/oss/exengine/-/releases).
 
     ```
     composer require linkfast/exengine
@@ -118,7 +118,7 @@ To get the previous response you should write the following function:
 Issues
 ===
 
-Please leave an issue to our GitLab.com project using this [link](https://gitlab.com/linkfast-oss/exengine/issues/new).
+Please leave an issue to our GitLab.com project using this [link](https://gitlab.com/linkfast/oss/exengine/issues/new).
 
 About the GitHub repo
 ===
