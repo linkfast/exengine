@@ -1120,7 +1120,8 @@ namespace ExEngine {
                 if ($exception->getCode() == 404) {
                     $errorHandler = $this->getConfig()->getDefaultErrorHandler();
                     if (strlen($errorHandler) > 0) {
-                        $this->redirect($errorHandler);
+                        $this->redirectByUrl($errorHandler);
+                        return;
                     }
                 }
                 $trace = $this->getConfig()->isShowStackTrace() ? $exception->getTrace() : null;
