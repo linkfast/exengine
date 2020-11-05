@@ -178,6 +178,7 @@ namespace ExEngine {
         protected $forceAutoDbInit = false;
         protected $defaultControllerFunction = '';
         protected $defaultStaticAppStart = '';
+        protected $defaultErrorHandler = '';
         /* getters */
         /**
          * True if production optimizations are enabled. Please test your app in development mode first, production
@@ -291,6 +292,15 @@ namespace ExEngine {
         {
             return $this->services;
         }
+
+        /**
+         * @return string
+         */
+        public function getDefaultErrorHandler()
+        {
+            return $this->defaultErrorHandler;
+        }
+
         // Setters
         public function setFilterInstance($filterClass, $filter) {
             $this->filters[$filterClass] = $filter;
@@ -1015,6 +1025,23 @@ namespace ExEngine {
         }
 
         /**
+         * Redirects using a string URL path.
+         * @param $url
+         */
+        function redirectByUrl($url) {
+            header('Location: ' . $this->linkByUrl($url));
+        }
+
+        /**
+         * Gets the project-context URL using a raw string.
+         * @param $url
+         * @return string
+         */
+        function linkByUrl($url) {
+            return $_SERVER['SCRIPT_NAME'] . '/' . $url;
+        }
+
+        /**
          * Returns the root relative url to the defined controller's method.
          * @param $controller
          * @param $method
@@ -1090,6 +1117,12 @@ namespace ExEngine {
                 $this->instantiateFilters();
                 print $this->processArguments();
             } catch (\Throwable $exception) {
+                if ($exception->getCode() == 404) {
+                    $errorHandler = $this->getConfig()->getDefaultErrorHandler();
+                    if (strlen($errorHandler) > 0) {
+                        $this->redirect($errorHandler);
+                    }
+                }
                 $trace = $this->getConfig()->isShowStackTrace() ? $exception->getTrace() : null;
                 $resp = new StandardResponse(0, $exception->getCode(), null, true, new ErrorDetail($trace, $exception->getMessage()));
                 http_response_code($exception->getCode());
