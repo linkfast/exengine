@@ -32,9 +32,9 @@ class FilterExample extends \ExEngine\Filter
 
     function requestFilter(\ExEngine\ControllerMethodMeta $methodMeta, array &$filtersData)
     {
-        // Exclude some methods from this filter.
+        // Exclude some methods from this filter, remember that you can exclude this filter in the controller.
         switch ($methodMeta->getControllerName()) {
-            case 'GraphQLController':
+            case 'GraphQLController': // Some stuff from the future ;)
                 switch ($methodMeta->getMethodName()) {
                     case 'Login':
                     case 'Authenticate':

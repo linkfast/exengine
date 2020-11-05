@@ -1,4 +1,15 @@
 <?php
+/**
+ * ExEngine Dependency Injection Example
+ *
+ * This is a service that we will register as a service,
+ * in this mode, every time this service is injected a new instance is made.
+ * For example, the injected service in the filter is not the same as the filter injected in the controller.
+ *
+ * Check singleton services for the other kind of them.
+ *
+ * Last updated: 4 Nov 2020
+ */
 
 class MyService {
 

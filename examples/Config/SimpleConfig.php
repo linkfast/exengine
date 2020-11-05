@@ -1,12 +1,12 @@
 <?php
 /**
- * Example configuration class for ExEngine Microframework
+ * Example configuration class for ExEngine
  *
  * The definition of this class is completely optional, please check the documentation provided in the
  * wiki for more information of configuring ExEngine:
- * https://gitlab.com/linkfast-oss/exengine/wikis/Configuration
+ * https://gitlab.com/linkfast/oss/exengine/wikis/Configuration
  *
- * Last updated: 15 Jun 2020
+ * Last updated: 4 Nov 2020
  */
 class Config extends ExEngine\BaseConfig
 {
@@ -28,7 +28,7 @@ class Config extends ExEngine\BaseConfig
 //        parent::__construct($launcherFolderPath);
 //    }
 
-    // Set your host_init connection information here.
+    // Set your database connection information here.
     // ExEngine has defaults for RedBeanPHP (SQLite testing) and POMM (exactly as it explains the Quick Pomm2 Setup
     // Guide), if using alternate configurations (RedBeanPHP:MySQL/PostgreSQL/etc or custom POMM settings), you can
     // override here.

@@ -173,7 +173,7 @@ namespace ExEngine {
         protected $launcherFolderPath = '';
         protected $filters = [];
         protected $services = [];
-        protected $extensions = [];
+// TODO:        protected $extensions = [];
         protected $production = false;
         protected $forceAutoDbInit = false;
         protected $defaultControllerFunction = '';
@@ -320,29 +320,29 @@ namespace ExEngine {
                 500);
         }
     }
-
-    final public function enableExtension($extensionLoaderClass, $extensionConfig=null) {
-        if (class_exists($extensionLoaderClass)
-            && in_array(Extension::class, class_implements($extensionLoaderClass))) {
-            if ($extensionConfig == null)
-                $this->extensions[$extensionLoaderClass] = 0;
-            else {
-                // validate configuration
-                if (
-                    forward_static_call([$extensionLoaderClass, 'validateConfiguration'], $extensionConfig)
-                ) {
-                    $this->extensions[$extensionLoaderClass] = $extensionConfig;
-                } else {
-                    throw new ResponseException("Extension '$extensionLoaderClass' cannot be enabled. ".
-                        "Configuration is not valid.",
-                        500);
-                }
-            }
-        } else {
-            throw new ResponseException("Extension '$extensionLoaderClass' not available. Cannot enable.",
-                500);
-        }
-    }
+// TODO: Extension Support, Planned For 1.2+
+//    final public function enableExtension($extensionLoaderClass, $extensionConfig=null) {
+//        if (class_exists($extensionLoaderClass)
+//            && in_array(Extension::class, class_implements($extensionLoaderClass))) {
+//            if ($extensionConfig == null)
+//                $this->extensions[$extensionLoaderClass] = 0;
+//            else {
+//                // validate configuration
+//                if (
+//                    forward_static_call([$extensionLoaderClass, 'validateConfiguration'], $extensionConfig)
+//                ) {
+//                    $this->extensions[$extensionLoaderClass] = $extensionConfig;
+//                } else {
+//                    throw new ResponseException("Extension '$extensionLoaderClass' cannot be enabled. ".
+//                        "Configuration is not valid.",
+//                        500);
+//                }
+//            }
+//        } else {
+//            throw new ResponseException("Extension '$extensionLoaderClass' not available. Cannot enable.",
+//                500);
+//        }
+//    }
 
         final public function registerService($serviceClass, $singleton = false)
         {
@@ -585,7 +585,6 @@ namespace ExEngine {
     final class CoreX
     {
         // Static part of CoreX
-
         /***
          * @param string $name
          * @return Monolog\Logger|NullLogger
@@ -768,7 +767,6 @@ namespace ExEngine {
                     // Check if controller exists and load it.
                     if (file_exists($this->getController($controllerFileName))) {
                         include_once($this->getController($controllerFileName));
-//                        $classObj = new $className();
                         // check if method is defined
                         if (count($access) > 1) {
                             $method = $access[1];
@@ -783,7 +781,6 @@ namespace ExEngine {
                             if (is_dir($this->getControllerFolder($folderName))) {
                                 if (file_exists($this->getControllerFolder($folderName) . '/' . $controllerFileName . '.php')) {
                                     include_once($this->getControllerFolder($folderName) . '/' . $controllerFileName . '.php');
-//                                    $classObj = new $className();
                                     // check if method is defined
                                     if (count($access) > 2) {
                                         $method = $access[2];
@@ -1104,6 +1101,8 @@ namespace ExEngine {
 }
 
 namespace {
+    const EXENGINE_RELEASE = '1.1.0';
+    const EXENGINE_API_LEVEL = 2;
     /**
      * Global shortcut for \ExEngine\CoreX::getInstance();
      *
