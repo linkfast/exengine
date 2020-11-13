@@ -15,6 +15,12 @@ namespace ExEngine {
 
     use Throwable;
 
+    /**
+     * Class RestController
+     * Since: ExEngine 1.0.0
+     * Updated: 5 Nov 2020
+     * @package ExEngine
+     */
     class RestController
     {
         /**
@@ -36,6 +42,12 @@ namespace ExEngine {
         }
     }
 
+    /**
+     * Class Body
+     * Since: ExEngine 1.0.1
+     * Updated: 5 Nov 2020
+     * @package ExEngine
+     */
     class Body
     {
         private $rawBody;
@@ -78,6 +90,8 @@ namespace ExEngine {
 
     /**
      * Class DataClass
+     * Since: ExEngine 1.0.0
+     * Updated: 5 Nov 2020
      * This class is supposed to be used as a parent of any object returning function.
      * ExEngine CoreX will automatically parse the properties as a json object.
      * Available modifiers:
@@ -479,6 +493,8 @@ namespace ExEngine {
 
     /**
      * Class ControllerMethodMeta
+     * Since: ExEngine 1.0.0
+     * Updated: 5 Nov 2020
      * This class represents the metadata of a controller method just before being executed.
      * Specially created for using with filters, this allows to have a good structure for using a framework level
      * filter system, just as for Filter and RESTController classes.
@@ -575,11 +591,34 @@ namespace ExEngine {
 
     }
 
+    /**
+     * Class Filter
+     * Since: ExEngine 1.1.0
+     * Updated: 5 Nov 2020
+     * This class implements the required methods to chain filters defined in the ExEngine Filter Architecture.
+     * For more information, check the wiki: TODO: URL 1.1.0
+     * @package ExEngine
+     */
     abstract class Filter
     {
+        /**
+         * If this is defined in the filter, this method will be called in the chain of the request filters,
+         * before the data reaches the Controller. This is mostly used to protect the controllers or methods implementing
+         * session handling, decryption, IP / Geo filtering, headers validation, etc.
+         * @param ControllerMethodMeta $controllerMeta
+         * @param array $filtersData
+         */
         function requestFilter(ControllerMethodMeta $controllerMeta, array &$filtersData)
         {}
 
+        /**
+         * If this is defined in the filter, this method will be called in the chain of the response filters,
+         * just after the data is returned from a Controller's Method. This is mostly used to transform the output
+         * of the entire application or some parts of it. For example, implement encryption.
+         * @param ControllerMethodMeta $controllerMeta
+         * @param $rawControllerResponse
+         * @return mixed
+         */
         function responseFilter(ControllerMethodMeta $controllerMeta, $rawControllerResponse)
         {
             return $rawControllerResponse;
@@ -592,6 +631,91 @@ namespace ExEngine {
         final function info(...$arg) {}
     }
 
+    /**
+     * Class Enum
+     * Since: ExEngine 1.1.0
+     * Updated: 5 Nov 2020
+     * This class implements a basic enum parent class, you must extend all your enums from this class.
+     * For more information: TODO: URL, planned for 1.1.0 release
+     * Basic example of enum:
+     * abstract class DaysOfWeekEnum extends \ExEngine\Enum {
+            const Sunday = 0;
+            const Monday = 1;
+            const Tuesday = 2;
+            const Wednesday = 3;
+            const Thursday = 4;
+            const Friday = 5;
+            const Saturday = 6;
+        }
+     * @package ExEngine
+     */
+    abstract class Enum {
+        private static $constCacheArray = null;
+        /**
+         * Gets the constants of the child class using reflection.
+         * @return mixed
+         */
+        private static function getConstants() {
+            if (self::$constCacheArray == null) {
+                self::$constCacheArray = [];
+            }
+            $calledClass = get_called_class();
+            if (!array_key_exists($calledClass, self::$constCacheArray)) {
+                $reflect = new ReflectionClass($calledClass);
+                self::$constCacheArray[$calledClass] = $reflect->getConstants();
+            }
+            return self::$constCacheArray[$calledClass];
+        }
+
+        /**
+         * Checks if the constant is defined in this enum.
+         * @param $name
+         * @param bool $strict Set to true to check case sensitive.
+         * @return bool
+         */
+        public static function isValidName($name, $strict = false) {
+            $constants = self::getConstants();
+            if ($strict) {
+                return array_key_exists($name, $constants);
+            }
+            $keys = array_map('strtolower', array_keys($constants));
+            return in_array(strtolower($name), $keys);
+        }
+
+        /**
+         * Checks if one of the constants have the value.
+         * @param $value
+         * @param bool $strict Set to true to strictly check if are the same.
+         * @return bool
+         */
+        public static function isValidValue($value, $strict = true) {
+            $values = array_values(self::getConstants());
+            return in_array($value, $values, $strict);
+        }
+    }
+
+    /**
+     * Class HttpCodesEnum
+     * HTTP response codes, public enum can be used by any ExEngine based app.
+     * @package ExEngine
+     */
+    abstract class HttpCodesEnum extends Enum {
+        const OK = 200;
+        const BAD_REQUEST = 400;
+        const UNAUTHORIZED = 401;
+        const FORBIDDEN = 403;
+        const NOT_FOUND = 404;
+        const INTERNAL_SERVER_ERROR = 500;
+    }
+
+    /**
+     * Class CoreX
+     * Since: ExEngine 0.0.1
+     * Updated: 5 Nov 2020
+     * CoreX is the main application processor entry point.
+     * For more information about the technology of ExEngine, check the wiki: TODO: Url de Wiki, 1.1.0
+     * @package ExEngine
+     */
     final class CoreX
     {
         // Static part of CoreX
@@ -923,8 +1047,12 @@ namespace ExEngine {
         }
 
         /***
-         * This is the ExEngine Dependency Injector
+         * ExEngine Dependency Injector
          * Version: 1.0
+         * Since: ExEngine 1.1.0
+         * Updated: 5 Nov 2020
+         * This is the implementation of the ExEngine Dependency Injection Architecture for PHP. Is currently tight
+         * implemented with the Controller processor.
          * @param $className
          * @param $root
          * @param $injectionStack
@@ -1004,7 +1132,7 @@ namespace ExEngine {
          * @param mixed ...$arguments
          * @throws ResponseException
          */
-        function redirect($controller, $method, ...$arguments)
+        public function redirect($controller, $method, ...$arguments)
         {
             header('Location: ' . $this->link($controller, $method, ...$arguments));
             exit();
@@ -1014,7 +1142,7 @@ namespace ExEngine {
          * Redirects to the default (if set) if not, will throw an exception.
          * @throws ResponseException
          */
-        function redirectToDefault()
+        public function redirectToDefault()
         {
             if (strlen($this->config->getDefaultStaticAppStart()) > 0) {
                 header('Location: ' . $this->config->getDefaultStaticAppStart());
@@ -1072,7 +1200,10 @@ namespace ExEngine {
         }
 
         /**
-         * CoreX constructor.
+         * CoreX constructor and ExEngine Entry Point
+         * Since: ExEngine 0.0.1
+         * Milestone: ExEngine 1.0.0
+         * Updated: 22 Nov 2020
          * @param BaseConfig|string|null $baseConfigChildInstanceOrLauncherFolderPath
          * @throws \Exception
          */
@@ -1117,12 +1248,16 @@ namespace ExEngine {
                 $this->instantiateFilters();
                 print $this->processArguments();
             } catch (\Throwable $exception) {
-                if ($exception->getCode() == 404) {
-                    $errorHandler = $this->getConfig()->getDefaultErrorHandler();
-                    if (strlen($errorHandler) > 0) {
-                        $this->redirectByUrl($errorHandler);
-                        return;
-                    }
+                switch ($exception->getCode()) {
+                    case HttpCodesEnum::NOT_FOUND:
+                        $errorHandler = $this->getConfig()->getDefaultErrorHandler();
+                        if (strlen($errorHandler) > 0) {
+                            $this->redirectByUrl(
+                                str_replace('{error-code}', $exception->getCode(), $errorHandler)
+                            );
+                            return;
+                        }
+                    break;
                 }
                 $trace = $this->getConfig()->isShowStackTrace() ? $exception->getTrace() : null;
                 $resp = new StandardResponse(0, $exception->getCode(), null, true, new ErrorDetail($trace, $exception->getMessage()));
