@@ -37,7 +37,7 @@ Quick start
     
     You can create a custom `config` class with settings. 
 
-3. Create a folder called `._` relative to `index.php`. Inside of this new folder, 
+3. Create a folder called `App` relative to `index.php`. Inside of this new folder, 
 create a file called `Test.php` with the following contents:
 
     ```php
